@@ -12,7 +12,8 @@ import {
   Clock,
   Play,
   BookOpen,
-  Filter
+  Filter,
+  Plus
 } from "lucide-react";
 
 const ExerciseLibrary = () => {
