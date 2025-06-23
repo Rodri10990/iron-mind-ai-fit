@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,12 +12,17 @@ import {
   Play,
   BookOpen,
   Filter,
-  Plus
+  Plus,
+  Pause,
+  RotateCcw
 } from "lucide-react";
 
 const ExerciseLibrary = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [restTimer, setRestTimer] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [timerExercise, setTimerExercise] = useState<string | null>(null);
 
   const exercises = [
     {
@@ -30,6 +34,8 @@ const ExerciseLibrary = () => {
       primaryMuscles: ["Pectorales"],
       secondaryMuscles: ["Tríceps", "Deltoides anterior"],
       description: "Ejercicio fundamental para el desarrollo del pecho y fuerza de empuje.",
+      imageUrl: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop",
+      restTime: 120, // 2 minutos
       instructions: [
         "Acuéstate en el banco con los pies firmemente en el suelo",
         "Agarra la barra con las manos separadas al ancho de los hombros",
@@ -51,6 +57,8 @@ const ExerciseLibrary = () => {
       primaryMuscles: ["Cuádriceps", "Glúteos"],
       secondaryMuscles: ["Isquiotibiales", "Core"],
       description: "El rey de los ejercicios para piernas y fuerza funcional.",
+      imageUrl: "https://images.unsplash.com/photo-1566241142230-c05d99cd6b44?w=400&h=300&fit=crop",
+      restTime: 180, // 3 minutos
       instructions: [
         "Coloca la barra en la parte superior de la espalda",
         "Separa los pies al ancho de los hombros",
@@ -72,6 +80,8 @@ const ExerciseLibrary = () => {
       primaryMuscles: ["Erector espinal", "Glúteos"],
       secondaryMuscles: ["Isquiotibiales", "Trapecios", "Dorsales"],
       description: "Ejercicio completo para la cadena posterior y fuerza general.",
+      imageUrl: "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=400&h=300&fit=crop",
+      restTime: 180, // 3 minutos
       instructions: [
         "Colócate frente a la barra con los pies al ancho de caderas",
         "Agarra la barra con las manos fuera de las piernas",
@@ -93,6 +103,8 @@ const ExerciseLibrary = () => {
       primaryMuscles: ["Dorsales", "Bíceps"],
       secondaryMuscles: ["Romboides", "Trapecios medios"],
       description: "Excelente ejercicio para desarrollar la fuerza de tracción.",
+      imageUrl: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=400&h=300&fit=crop",
+      restTime: 90, // 1.5 minutos
       instructions: [
         "Cuelga de la barra con agarre pronado",
         "Separa las manos al ancho de los hombros",
@@ -106,6 +118,42 @@ const ExerciseLibrary = () => {
       ]
     }
   ];
+
+  // Rest Timer Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerActive && restTimer > 0) {
+      interval = setInterval(() => {
+        setRestTimer(time => time - 1);
+      }, 1000);
+    } else if (restTimer === 0 && isTimerActive) {
+      setIsTimerActive(false);
+      setTimerExercise(null);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerActive, restTimer]);
+
+  const startRestTimer = (exerciseName: string, restTime: number) => {
+    setRestTimer(restTime);
+    setTimerExercise(exerciseName);
+    setIsTimerActive(true);
+  };
+
+  const pauseTimer = () => {
+    setIsTimerActive(!isTimerActive);
+  };
+
+  const resetTimer = () => {
+    setIsTimerActive(false);
+    setRestTimer(0);
+    setTimerExercise(null);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const categories = [
     { id: "all", name: "Todos", count: exercises.length },
@@ -134,6 +182,44 @@ const ExerciseLibrary = () => {
 
   return (
     <div className="space-y-6">
+      {/* Rest Timer Display */}
+      {timerExercise && (
+        <Card className="bg-orange-50 border-orange-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Clock className="h-5 w-5 text-orange-600" />
+                <div>
+                  <p className="font-medium">Descanso - {timerExercise}</p>
+                  <p className="text-sm text-gray-600">Tiempo restante</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-3xl font-bold text-orange-600">
+                  {formatTime(restTimer)}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={pauseTimer}
+                  >
+                    {isTimerActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={resetTimer}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search and Filters */}
       <Card>
         <CardHeader>
@@ -174,12 +260,12 @@ const ExerciseLibrary = () => {
       </Card>
 
       {/* Exercise Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {filteredExercises.map(exercise => (
           <Card key={exercise.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
-                <div>
+                <div className="flex-1">
                   <CardTitle className="text-lg">{exercise.name}</CardTitle>
                   <CardDescription className="mt-1">
                     {exercise.description}
@@ -194,6 +280,10 @@ const ExerciseLibrary = () => {
                   <Target className="h-3 w-3 mr-1" />
                   {exercise.equipment}
                 </Badge>
+                <Badge variant="outline" className="text-xs">
+                  <Clock className="h-3 w-3 mr-1" />
+                  {Math.floor(exercise.restTime / 60)}:{(exercise.restTime % 60).toString().padStart(2, '0')} descanso
+                </Badge>
                 {exercise.primaryMuscles.map(muscle => (
                   <Badge key={muscle} variant="secondary" className="text-xs">
                     {muscle}
@@ -203,6 +293,16 @@ const ExerciseLibrary = () => {
             </CardHeader>
             
             <CardContent>
+              {/* Exercise Image */}
+              <div className="mb-4">
+                <img
+                  src={exercise.imageUrl}
+                  alt={`Demostración de ${exercise.name}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+
               <Tabs defaultValue="instructions" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="instructions">Instrucciones</TabsTrigger>
@@ -244,6 +344,14 @@ const ExerciseLibrary = () => {
                 <Button size="sm" className="flex-1 bg-orange-600 hover:bg-orange-700">
                   <Plus className="h-4 w-4 mr-2" />
                   Agregar a Rutina
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => startRestTimer(exercise.name, exercise.restTime)}
+                  className="px-3"
+                >
+                  <Clock className="h-4 w-4" />
                 </Button>
               </div>
 
