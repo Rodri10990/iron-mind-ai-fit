@@ -1,0 +1,26 @@
+
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'app.lovable.1888d7de9b714d73bc45eb558730394c',
+  appName: 'iron-mind-ai-fit',
+  webDir: 'dist',
+  server: {
+    url: "https://1888d7de-9b71-4d73-bc45-eb558730394c.lovableproject.com?forceHideBadge=true",
+    cleartext: true
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#f97316",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
+};
+
+export default config;
