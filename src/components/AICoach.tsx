@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Brain, 
   Send, 
@@ -14,26 +15,25 @@ import {
   TrendingUp,
   MessageCircle,
   Zap,
-  Calendar
+  Calendar,
+  Loader2
 } from "lucide-react";
+
+interface ChatMessage {
+  type: 'user' | 'ai';
+  message: string;
+  timestamp: string;
+}
 
 const AICoach = () => {
   const [message, setMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState([
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     {
       type: "ai",
-      message: "¡Hola! Soy tu entrenador personal AI. He analizado tu progreso reciente y tengo algunas recomendaciones para ti. ¿En qué puedo ayudarte hoy?",
+      message: "¡Hola! Soy tu entrenador personal AI powered by Google Gemini. Estoy aquí para ayudarte con rutinas personalizadas, consejos de técnica, nutrición y motivación. ¿En qué puedo ayudarte hoy?",
       timestamp: "10:30"
-    },
-    {
-      type: "user", 
-      message: "¿Cómo puedo mejorar mi press de banca?",
-      timestamp: "10:31"
-    },
-    {
-      type: "ai",
-      message: "Basándome en tu progreso actual (70kg máximo), te recomiendo:\n\n1. **Técnica**: Mantén los omóplatos retraídos y asegúrate de tocar el pecho en cada repetición\n2. **Frecuencia**: Aumenta a 2-3 veces por semana\n3. **Volumen**: Agrega series de pausa en el pecho\n4. **Accesorios**: Incluye press inclinado y fondos\n\n¿Te gustaría que genere una rutina específica?",
-      timestamp: "10:32"
     }
   ]);
 
@@ -75,31 +75,65 @@ const AICoach = () => {
     "¿Qué ejercicios accesorios me recomiendas?"
   ];
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
+  const sendMessage = async () => {
+    if (!message.trim() || isLoading) return;
     
-    setChatHistory(prev => [
-      ...prev,
-      {
-        type: "user",
-        message: message,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
-    
+    const userMessage = message;
     setMessage("");
+    setIsLoading(true);
     
-    // Simulate AI response
-    setTimeout(() => {
-      setChatHistory(prev => [
-        ...prev,
-        {
-          type: "ai",
-          message: "Gracias por tu pregunta. Basándome en tu historial de entrenamientos y datos de progreso, te voy a generar una respuesta personalizada...",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // Add user message to chat
+    const newUserMessage: ChatMessage = {
+      type: "user",
+      message: userMessage,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    setChatHistory(prev => [...prev, newUserMessage]);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: {
+          message: userMessage,
+          chatHistory: chatHistory
         }
-      ]);
-    }, 1000);
+      });
+
+      if (error) {
+        console.error('Error calling gemini-chat function:', error);
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      // Add AI response to chat
+      const aiMessage: ChatMessage = {
+        type: "ai",
+        message: data.message || "Lo siento, no pude procesar tu mensaje.",
+        timestamp: data.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      
+      setChatHistory(prev => [...prev, aiMessage]);
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "No pude enviar tu mensaje. Por favor intenta de nuevo.",
+        variant: "destructive",
+      });
+      
+      // Add error message to chat
+      setChatHistory(prev => [...prev, {
+        type: "ai",
+        message: "Lo siento, hubo un problema al procesar tu mensaje. Por favor intenta de nuevo.",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getRecommendationColor = (type: string) => {
@@ -188,6 +222,9 @@ const AICoach = () => {
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-purple-600" />
               Chat con tu Entrenador AI
+              <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
+                Powered by Gemini
+              </Badge>
             </CardTitle>
             <CardDescription>
               Pregúntame sobre rutinas, técnica, progreso o cualquier duda sobre entrenamiento
@@ -214,6 +251,16 @@ const AICoach = () => {
                     </div>
                   </div>
                 ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Tu entrenador AI está pensando...
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </ScrollArea>
 
@@ -225,18 +272,39 @@ const AICoach = () => {
                 placeholder="Pregúntame sobre tu entrenamiento..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                 className="flex-1"
+                disabled={isLoading}
               />
-              <Button onClick={sendMessage} disabled={!message.trim()}>
-                <Send className="h-4 w-4" />
+              <Button onClick={sendMessage} disabled={!message.trim() || isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
+            </div>
+
+            {/* Quick Questions */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {quickQuestions.slice(0, 2).map((question, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setMessage(question)}
+                  disabled={isLoading}
+                >
+                  {question}
+                </Button>
+              ))}
             </div>
 
             {/* AI Status */}
             <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>AI Entrenador activo • Analizando tu progreso en tiempo real</span>
+              <span>AI Entrenador activo • Powered by Google Gemini</span>
             </div>
           </CardContent>
         </Card>

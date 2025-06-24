@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,8 +13,12 @@ import {
   Brain,
   Plus,
   Timer,
-  BarChart3
+  BarChart3,
+  LogOut,
+  User
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import WorkoutTracker from "@/components/WorkoutTracker";
 import ProgressCharts from "@/components/ProgressCharts";
 import AICoach from "@/components/AICoach";
@@ -23,6 +26,8 @@ import ExerciseLibrary from "@/components/ExerciseLibrary";
 
 const Index = () => {
   const [activeWorkout, setActiveWorkout] = useState(false);
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
   
   // Mock data para mostrar funcionalidad
   const weeklyProgress = 75;
@@ -36,6 +41,23 @@ const Index = () => {
     { id: 2, name: "Pull Day", date: "Ayer", duration: "50 min", exercises: 7 },
     { id: 3, name: "Legs", date: "2 días", duration: "60 min", exercises: 9 },
   ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente.",
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al cerrar sesión.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -55,15 +77,34 @@ const Index = () => {
                 <h1 className="text-lg font-bold text-gray-900">FitTracker AI</h1>
               </div>
             </div>
-            <Button 
-              onClick={() => setActiveWorkout(true)}
-              className="bg-orange-500 hover:bg-orange-600 px-3 py-2 text-sm"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Nuevo Entrenamiento</span>
-              <span className="sm:hidden">Nuevo</span>
-            </Button>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={() => setActiveWorkout(true)}
+                className="bg-orange-500 hover:bg-orange-600 px-3 py-2 text-sm"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Nuevo Entrenamiento</span>
+                <span className="sm:hidden">Nuevo</span>
+              </Button>
+              
+              <div className="flex items-center gap-2 text-sm">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+                  <User className="h-4 w-4" />
+                  <span>{user?.email}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="px-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Salir</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
