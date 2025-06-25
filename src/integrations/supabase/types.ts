@@ -9,7 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      workout_plan_exercises: {
+        Row: {
+          created_at: string
+          day_number: number
+          exercise_name: string
+          id: string
+          notes: string | null
+          order_index: number
+          plan_id: string
+          reps: string
+          rest_seconds: number
+          sets: number
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          exercise_name: string
+          id?: string
+          notes?: string | null
+          order_index?: number
+          plan_id: string
+          reps: string
+          rest_seconds?: number
+          sets: number
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          exercise_name?: string
+          id?: string
+          notes?: string | null
+          order_index?: number
+          plan_id?: string
+          reps?: string
+          rest_seconds?: number
+          sets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_exercises_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          difficulty: string
+          duration_weeks: number
+          id: string
+          name: string
+          sessions_per_week: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration_weeks?: number
+          id?: string
+          name: string
+          sessions_per_week?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          difficulty?: string
+          duration_weeks?: number
+          id?: string
+          name?: string
+          sessions_per_week?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

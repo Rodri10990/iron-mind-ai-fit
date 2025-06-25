@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { workoutPlanService, WorkoutPlanData } from "@/services/workoutPlanService";
 import { 
   Brain, 
   Send, 
@@ -16,7 +17,8 @@ import {
   MessageCircle,
   Zap,
   Calendar,
-  Loader2
+  Loader2,
+  Plus
 } from "lucide-react";
 
 interface ChatMessage {
@@ -28,11 +30,12 @@ interface ChatMessage {
 const AICoach = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const { toast } = useToast();
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
     {
       type: "ai",
-      message: "¡Hola! Soy tu entrenador personal AI powered by Google Gemini. Estoy aquí para ayudarte con rutinas personalizadas, consejos de técnica, nutrición y motivación. ¿En qué puedo ayudarte hoy?",
+      message: "¡Hola! Soy tu entrenador personal AI powered by Google Gemini. Estoy aquí para ayudarte con rutinas personalizadas, consejos de técnica, nutrición y motivación. También puedo crear planes de entrenamiento personalizados y guardarlos en tu biblioteca. ¿En qué puedo ayudarte hoy?",
       timestamp: "10:30"
     }
   ]);
@@ -72,8 +75,156 @@ const AICoach = () => {
     "¿Qué rutina me recomiendas para esta semana?",
     "¿Cómo puedo mejorar mi técnica en peso muerto?",
     "¿Debería aumentar mi volumen de entrenamiento?",
-    "¿Qué ejercicios accesorios me recomiendas?"
+    "Crea un plan de entrenamiento personalizado"
   ];
+
+  const parseWorkoutPlanFromResponse = (response: string): WorkoutPlanData | null => {
+    try {
+      // Look for workout plan structure in the response
+      const lines = response.split('\n');
+      let planName = '';
+      let difficulty = 'Intermedio';
+      let duration_weeks = 4;
+      let sessions_per_week = 3;
+      let description = '';
+      const exercises: WorkoutPlanData['exercises'] = [];
+      
+      let currentDay = 0;
+      let exerciseIndex = 0;
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // Extract plan name from headers
+        if (trimmedLine.includes('Plan de Entrenamiento') || trimmedLine.includes('**Plan')) {
+          planName = trimmedLine.replace(/\*\*/g, '').replace('Plan de Entrenamiento', '').replace(':', '').trim();
+          if (!planName) planName = 'Plan Personalizado AI';
+        }
+        
+        // Extract difficulty
+        if (trimmedLine.toLowerCase().includes('avanzado')) {
+          difficulty = 'Avanzado';
+        } else if (trimmedLine.toLowerCase().includes('principiante')) {
+          difficulty = 'Principiante';
+        }
+        
+        // Extract day information
+        if (trimmedLine.includes('Día') && (trimmedLine.includes(':') || trimmedLine.includes('1') || trimmedLine.includes('2') || trimmedLine.includes('3'))) {
+          const dayMatch = trimmedLine.match(/Día\s*(\d+)/);
+          if (dayMatch) {
+            currentDay = parseInt(dayMatch[1]);
+            exerciseIndex = 0;
+          }
+        }
+        
+        // Extract exercises (look for patterns like "* Exercise:" or "- Exercise:")
+        if (currentDay > 0 && (trimmedLine.startsWith('*') || trimmedLine.startsWith('-')) && trimmedLine.includes(':')) {
+          const exerciseMatch = trimmedLine.match(/[\*\-]\s*\*\*(.*?)\*\*:?\s*(.*)/) || 
+                               trimmedLine.match(/[\*\-]\s*(.*?):\s*(.*)/);
+          
+          if (exerciseMatch) {
+            const exerciseName = exerciseMatch[1].trim();
+            const setsRepsInfo = exerciseMatch[2].trim();
+            
+            // Parse sets and reps
+            let sets = 3;
+            let reps = '8-12';
+            let rest_seconds = 120;
+            
+            const setsMatch = setsRepsInfo.match(/(\d+)x(\d+[-\d]*)/);
+            if (setsMatch) {
+              sets = parseInt(setsMatch[1]);
+              reps = setsMatch[2];
+            }
+            
+            // Handle special cases
+            if (setsRepsInfo.includes('fallo')) {
+              reps = 'al fallo';
+            }
+            if (setsRepsInfo.includes('segundos')) {
+              const secondsMatch = setsRepsInfo.match(/(\d+)[-\d]*\s*segundos/);
+              if (secondsMatch) {
+                reps = `${secondsMatch[1]} segundos`;
+              }
+            }
+            
+            exercises.push({
+              day_number: currentDay,
+              exercise_name: exerciseName,
+              sets: sets,
+              reps: reps,
+              rest_seconds: rest_seconds,
+              order_index: exerciseIndex
+            });
+            
+            exerciseIndex++;
+          }
+        }
+      }
+      
+      // Extract sessions per week
+      if (response.includes('3 días') || response.includes('3 veces')) {
+        sessions_per_week = 3;
+      } else if (response.includes('4 días') || response.includes('4 veces')) {
+        sessions_per_week = 4;
+      } else if (response.includes('5 días') || response.includes('5 veces')) {
+        sessions_per_week = 5;
+      }
+      
+      if (!planName) planName = 'Plan Personalizado AI';
+      if (exercises.length === 0) return null;
+      
+      return {
+        name: planName,
+        description: `Plan de entrenamiento personalizado creado por tu AI Coach basado en tus objetivos y preferencias.`,
+        difficulty,
+        duration_weeks,
+        sessions_per_week,
+        exercises
+      };
+    } catch (error) {
+      console.error('Error parsing workout plan:', error);
+      return null;
+    }
+  };
+
+  const createWorkoutPlan = async (planData: WorkoutPlanData) => {
+    setIsCreatingPlan(true);
+    try {
+      const result = await workoutPlanService.createWorkoutPlan(planData);
+      
+      if (result.success) {
+        toast({
+          title: "¡Plan creado exitosamente!",
+          description: `El plan "${planData.name}" ha sido agregado a tu biblioteca.`,
+        });
+        
+        // Add success message to chat
+        const successMessage: ChatMessage = {
+          type: "ai",
+          message: `¡Perfecto! He creado y guardado el plan "${planData.name}" en tu biblioteca de entrenamientos. Puedes acceder a él desde la sección "Entrenar" de la aplicación.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setChatHistory(prev => [...prev, successMessage]);
+      } else {
+        toast({
+          title: "Error al crear el plan",
+          description: result.error || "Hubo un problema al guardar el plan.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating workout plan:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al crear el plan de entrenamiento.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingPlan(false);
+    }
+  };
 
   const sendMessage = async () => {
     if (!message.trim() || isLoading) return;
@@ -108,14 +259,29 @@ const AICoach = () => {
         throw new Error(data.error);
       }
 
+      const aiResponse = data.message || "Lo siento, no pude procesar tu mensaje.";
+
       // Add AI response to chat
       const aiMessage: ChatMessage = {
         type: "ai",
-        message: data.message || "Lo siento, no pude procesar tu mensaje.",
+        message: aiResponse,
         timestamp: data.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
       setChatHistory(prev => [...prev, aiMessage]);
+
+      // Check if the response contains a workout plan and if user wants to save it
+      const workoutPlan = parseWorkoutPlanFromResponse(aiResponse);
+      if (workoutPlan && (userMessage.toLowerCase().includes('crear') || userMessage.toLowerCase().includes('plan') || userMessage.toLowerCase().includes('rutina'))) {
+        // Add a follow-up message asking if they want to save the plan
+        const followUpMessage: ChatMessage = {
+          type: "ai",
+          message: "¿Te gustaría que guarde este plan de entrenamiento en tu biblioteca para que puedas usarlo en la aplicación?",
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setChatHistory(prev => [...prev, followUpMessage]);
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -133,6 +299,22 @@ const AICoach = () => {
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreatePlanFromLastResponse = async () => {
+    const lastAiMessage = chatHistory.filter(msg => msg.type === 'ai').pop();
+    if (!lastAiMessage) return;
+    
+    const workoutPlan = parseWorkoutPlanFromResponse(lastAiMessage.message);
+    if (workoutPlan) {
+      await createWorkoutPlan(workoutPlan);
+    } else {
+      toast({
+        title: "No se pudo crear el plan",
+        description: "No encontré información suficiente del plan en la conversación.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -227,7 +409,7 @@ const AICoach = () => {
               </Badge>
             </CardTitle>
             <CardDescription>
-              Pregúntame sobre rutinas, técnica, progreso o cualquier duda sobre entrenamiento
+              Pregúntame sobre rutinas, técnica, progreso o pídeme que cree un plan personalizado
             </CardDescription>
           </CardHeader>
           
@@ -266,10 +448,35 @@ const AICoach = () => {
 
             <Separator className="my-4" />
 
+            {/* Create Plan Button */}
+            {chatHistory.length > 1 && (
+              <div className="mb-3">
+                <Button
+                  onClick={handleCreatePlanFromLastResponse}
+                  disabled={isCreatingPlan}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                >
+                  {isCreatingPlan ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Guardando plan...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3 mr-1" />
+                      Guardar último plan creado
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
             {/* Message Input */}
             <div className="flex gap-2">
               <Input
-                placeholder="Pregúntame sobre tu entrenamiento..."
+                placeholder="Pregúntame sobre tu entrenamiento o pídeme crear un plan..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
