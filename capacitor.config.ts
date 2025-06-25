@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.1888d7de9b714d73bc45eb558730394c',
+  appId: 'com.lovable.ironmindaifit',
   appName: 'iron-mind-ai-fit',
   webDir: 'dist',
   server: {
