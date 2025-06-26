@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,8 @@ import {
   Zap,
   Calendar,
   Loader2,
-  Plus
+  Plus,
+  CheckCircle2
 } from "lucide-react";
 
 interface ChatMessage {
@@ -202,7 +204,7 @@ const AICoach = () => {
         // Add success message to chat
         const successMessage: ChatMessage = {
           type: "ai",
-          message: `¡Perfecto! He creado y guardado el plan "${planData.name}" en tu biblioteca de entrenamientos. Puedes acceder a él desde la sección "Entrenar" de la aplicación.`,
+          message: `¡Perfecto! He creado y guardado el plan "${planData.name}" en tu biblioteca de entrenamientos. Puedes acceder a él desde la sección "Planes" de la aplicación para comenzar tu entrenamiento cuando quieras.`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
@@ -280,7 +282,9 @@ const AICoach = () => {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        setChatHistory(prev => [...prev, followUpMessage]);
+        setTimeout(() => {
+          setChatHistory(prev => [...prev, followUpMessage]);
+        }, 1000);
       }
 
     } catch (error) {
@@ -338,31 +342,31 @@ const AICoach = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
       {/* Recommendations Panel */}
-      <div className="lg:col-span-1 space-y-4">
+      <div className="lg:col-span-1 space-y-3 md:space-y-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-yellow-600" />
+          <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Lightbulb className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
               Recomendaciones AI
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               Análisis automático basado en tu progreso
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 md:space-y-3 px-3 pb-3 md:px-6 md:pb-6">
             {recommendations.map((rec, index) => {
               const IconComponent = rec.icon;
               return (
-                <div key={index} className={`p-3 rounded-lg border ${getRecommendationColor(rec.type)}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="p-1 bg-white rounded">
-                      <IconComponent className="h-4 w-4" />
+                <div key={index} className={`p-2 md:p-3 rounded-lg border ${getRecommendationColor(rec.type)}`}>
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <div className="p-1 bg-white rounded flex-shrink-0">
+                      <IconComponent className="h-3 w-3 md:h-4 md:w-4" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{rec.title}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1 md:gap-2 mb-1">
+                        <span className="font-medium text-xs md:text-sm">{rec.title}</span>
                         <Badge variant="outline" className={`text-xs ${getPriorityColor(rec.priority)}`}>
                           {rec.priority}
                         </Badge>
@@ -378,10 +382,10 @@ const AICoach = () => {
 
         {/* Quick Questions */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Preguntas Frecuentes</CardTitle>
+          <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+            <CardTitle className="text-xs md:text-sm">Preguntas Frecuentes</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1 md:space-y-2 px-3 pb-3 md:px-6 md:pb-6">
             {quickQuestions.map((question, index) => (
               <Button
                 key={index}
@@ -399,32 +403,32 @@ const AICoach = () => {
 
       {/* Chat Interface */}
       <div className="lg:col-span-2">
-        <Card className="h-[600px] flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-600" />
+        <Card className="h-[500px] md:h-[600px] flex flex-col">
+          <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+              <Brain className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
               Chat con tu Entrenador AI
               <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
                 Powered by Gemini
               </Badge>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               Pregúntame sobre rutinas, técnica, progreso o pídeme que cree un plan personalizado
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col px-3 md:px-6">
             {/* Chat History */}
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 pr-2 md:pr-4">
+              <div className="space-y-3 md:space-y-4">
                 {chatHistory.map((chat, index) => (
                   <div key={index} className={`flex ${chat.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-3 rounded-lg ${
+                    <div className={`max-w-[85%] md:max-w-[80%] p-2 md:p-3 rounded-lg ${
                       chat.type === 'user' 
                         ? 'bg-orange-500 text-white' 
                         : 'bg-gray-100 text-gray-900'
                     }`}>
-                      <div className="whitespace-pre-wrap text-sm">{chat.message}</div>
+                      <div className="whitespace-pre-wrap text-xs md:text-sm">{chat.message}</div>
                       <div className={`text-xs mt-1 ${
                         chat.type === 'user' ? 'text-orange-100' : 'text-gray-500'
                       }`}>
@@ -435,9 +439,9 @@ const AICoach = () => {
                 ))}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="bg-gray-100 p-2 md:p-3 rounded-lg">
+                      <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
+                        <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                         Tu entrenador AI está pensando...
                       </div>
                     </div>
@@ -446,17 +450,17 @@ const AICoach = () => {
               </div>
             </ScrollArea>
 
-            <Separator className="my-4" />
+            <Separator className="my-2 md:my-4" />
 
             {/* Create Plan Button */}
             {chatHistory.length > 1 && (
-              <div className="mb-3">
+              <div className="mb-2 md:mb-3">
                 <Button
                   onClick={handleCreatePlanFromLastResponse}
                   disabled={isCreatingPlan}
                   variant="outline"
                   size="sm"
-                  className="text-xs"
+                  className="text-xs bg-green-50 hover:bg-green-100 border-green-200"
                 >
                   {isCreatingPlan ? (
                     <>
@@ -465,7 +469,7 @@ const AICoach = () => {
                     </>
                   ) : (
                     <>
-                      <Plus className="h-3 w-3 mr-1" />
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
                       Guardar último plan creado
                     </>
                   )}
@@ -474,43 +478,48 @@ const AICoach = () => {
             )}
 
             {/* Message Input */}
-            <div className="flex gap-2">
+            <div className="flex gap-1 md:gap-2">
               <Input
                 placeholder="Pregúntame sobre tu entrenamiento o pídeme crear un plan..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                className="flex-1"
+                className="flex-1 text-xs md:text-sm h-8 md:h-10"
                 disabled={isLoading}
               />
-              <Button onClick={sendMessage} disabled={!message.trim() || isLoading}>
+              <Button 
+                onClick={sendMessage} 
+                disabled={!message.trim() || isLoading}
+                size="sm"
+                className="h-8 md:h-10 px-2 md:px-4"
+              >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3 w-3 md:h-4 md:w-4" />
                 )}
               </Button>
             </div>
 
             {/* Quick Questions */}
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1 md:gap-2 mt-2 md:mt-3">
               {quickQuestions.slice(0, 2).map((question, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
-                  className="text-xs h-7"
+                  className="text-xs h-6 md:h-7 px-2"
                   onClick={() => setMessage(question)}
                   disabled={isLoading}
                 >
-                  {question}
+                  {question.length > 20 ? question.substring(0, 20) + '...' : question}
                 </Button>
               ))}
             </div>
 
             {/* AI Status */}
-            <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="flex items-center gap-1 md:gap-2 mt-2 md:mt-2 text-xs text-gray-500">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>AI Entrenador activo • Powered by Google Gemini</span>
             </div>
           </CardContent>

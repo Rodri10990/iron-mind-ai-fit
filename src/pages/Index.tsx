@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,15 @@ import {
   Timer,
   BarChart3,
   LogOut,
-  User
+  User,
+  Library
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import WorkoutTracker from "@/components/WorkoutTracker";
+import WorkoutLibrary from "@/components/WorkoutLibrary";
 import ProgressCharts from "@/components/ProgressCharts";
 import AICoach from "@/components/AICoach";
-import ExerciseLibrary from "@/components/ExerciseLibrary";
 
 const Index = () => {
   const [activeWorkout, setActiveWorkout] = useState(false);
@@ -63,45 +65,44 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header optimizado para móvil */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-2 md:px-4 py-2 md:py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <Dumbbell className="h-5 w-5 md:h-6 md:w-6 text-white" />
+              <div className="p-1 md:p-2 bg-orange-500 rounded-lg">
+                <Dumbbell className="h-4 w-4 md:h-6 md:w-6 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900">FitTracker AI</h1>
+                <h1 className="text-lg md:text-2xl font-bold text-gray-900">FitTracker AI</h1>
                 <p className="text-xs md:text-sm text-gray-600">Tu entrenador personal inteligente</p>
               </div>
               <div className="sm:hidden">
-                <h1 className="text-lg font-bold text-gray-900">FitTracker AI</h1>
+                <h1 className="text-base font-bold text-gray-900">FitTracker AI</h1>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <Button 
                 onClick={() => setActiveWorkout(true)}
-                className="bg-orange-500 hover:bg-orange-600 px-3 py-2 text-sm"
-                size="sm"
+                className="bg-orange-500 hover:bg-orange-600 px-2 md:px-3 py-1 md:py-2 text-xs md:text-sm h-7 md:h-9"
               >
-                <Plus className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Nuevo Entrenamiento</span>
-                <span className="sm:hidden">Nuevo</span>
+                <Plus className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                <span className="hidden sm:inline">Nuevo</span>
+                <span className="sm:hidden">+</span>
               </Button>
               
-              <div className="flex items-center gap-2 text-sm">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                  <User className="h-4 w-4" />
-                  <span>{user?.email}</span>
+              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <div className="hidden md:flex items-center gap-2 px-2 md:px-3 py-1 md:py-2 bg-gray-100 rounded-lg">
+                  <User className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="text-xs md:text-sm">{user?.email}</span>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={handleSignOut}
-                  className="px-2"
+                  className="px-1 md:px-2 h-7 md:h-9"
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-1">Salir</span>
+                  <LogOut className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="hidden sm:inline ml-1 text-xs">Salir</span>
                 </Button>
               </div>
             </div>
@@ -109,95 +110,96 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 md:py-6">
+      <div className="container mx-auto px-2 md:px-4 py-3 md:py-6">
         {/* Stats Cards optimizadas para móvil */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6 mb-4 md:mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-            <CardHeader className="pb-2 px-3 pt-3">
+            <CardHeader className="pb-1 px-2 pt-2 md:pb-2 md:px-3 md:pt-3">
               <CardTitle className="text-xs md:text-sm font-medium opacity-90">Progreso Semanal</CardTitle>
             </CardHeader>
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-2 pb-2 md:px-3 md:pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="text-lg md:text-2xl font-bold">{weeklyProgress}%</div>
-                  <Progress value={weeklyProgress} className="mt-2 bg-blue-400 h-1 md:h-2" />
+                  <div className="text-base md:text-2xl font-bold">{weeklyProgress}%</div>
+                  <Progress value={weeklyProgress} className="mt-1 md:mt-2 bg-blue-400 h-1 md:h-2" />
                 </div>
-                <TrendingUp className="h-6 w-6 md:h-8 md:w-8 opacity-80 ml-2" />
+                <TrendingUp className="h-5 w-5 md:h-8 md:w-8 opacity-80 ml-1 md:ml-2" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-            <CardHeader className="pb-2 px-3 pt-3">
+            <CardHeader className="pb-1 px-2 pt-2 md:pb-2 md:px-3 md:pt-3">
               <CardTitle className="text-xs md:text-sm font-medium opacity-90">Racha Actual</CardTitle>
             </CardHeader>
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-2 pb-2 md:px-3 md:pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-lg md:text-2xl font-bold">{currentStreak} días</div>
+                  <div className="text-base md:text-2xl font-bold">{currentStreak} días</div>
                   <div className="text-xs opacity-80">¡Sigue así!</div>
                 </div>
-                <Target className="h-6 w-6 md:h-8 md:w-8 opacity-80" />
+                <Target className="h-5 w-5 md:h-8 md:w-8 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-            <CardHeader className="pb-2 px-3 pt-3">
+            <CardHeader className="pb-1 px-2 pt-2 md:pb-2 md:px-3 md:pt-3">
               <CardTitle className="text-xs md:text-sm font-medium opacity-90">Total Entrenamientos</CardTitle>
             </CardHeader>
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-2 pb-2 md:px-3 md:pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-lg md:text-2xl font-bold">{totalWorkouts}</div>
+                  <div className="text-base md:text-2xl font-bold">{totalWorkouts}</div>
                   <div className="text-xs opacity-80">Este mes</div>
                 </div>
-                <Activity className="h-6 w-6 md:h-8 md:w-8 opacity-80" />
+                <Activity className="h-5 w-5 md:h-8 md:w-8 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-            <CardHeader className="pb-2 px-3 pt-3">
+            <CardHeader className="pb-1 px-2 pt-2 md:pb-2 md:px-3 md:pt-3">
               <CardTitle className="text-xs md:text-sm font-medium opacity-90">Meta Semanal</CardTitle>
             </CardHeader>
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-2 pb-2 md:px-3 md:pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-lg md:text-2xl font-bold">{completedThisWeek}/{weeklyGoal}</div>
+                  <div className="text-base md:text-2xl font-bold">{completedThisWeek}/{weeklyGoal}</div>
                   <div className="text-xs opacity-80">Entrenamientos</div>
                 </div>
-                <Calendar className="h-6 w-6 md:h-8 md:w-8 opacity-80" />
+                <Calendar className="h-5 w-5 md:h-8 md:w-8 opacity-80" />
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Content con tabs optimizadas para móvil */}
-        <Tabs defaultValue="dashboard" className="space-y-4 md:space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-10 md:h-11 text-xs md:text-sm">
-            <TabsTrigger value="dashboard" className="px-2">Dashboard</TabsTrigger>
-            <TabsTrigger value="workout" className="px-2">Entrenar</TabsTrigger>
-            <TabsTrigger value="progress" className="px-2">Progreso</TabsTrigger>
-            <TabsTrigger value="ai-coach" className="px-2">AI Coach</TabsTrigger>
+        <Tabs defaultValue="dashboard" className="space-y-3 md:space-y-6">
+          <TabsList className="grid w-full grid-cols-5 h-9 md:h-11 text-xs md:text-sm bg-white">
+            <TabsTrigger value="dashboard" className="px-1 md:px-2">Home</TabsTrigger>
+            <TabsTrigger value="library" className="px-1 md:px-2">Planes</TabsTrigger>
+            <TabsTrigger value="workout" className="px-1 md:px-2">Entrenar</TabsTrigger>
+            <TabsTrigger value="progress" className="px-1 md:px-2">Progreso</TabsTrigger>
+            <TabsTrigger value="ai-coach" className="px-1 md:px-2">AI Coach</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-4 md:space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          <TabsContent value="dashboard" className="space-y-3 md:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
               {/* Recent Workouts */}
               <Card>
-                <CardHeader className="px-4 py-3 md:px-6 md:py-4">
-                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-lg">
                     <Timer className="h-4 w-4 md:h-5 md:w-5" />
                     Entrenamientos Recientes
                   </CardTitle>
                   <CardDescription className="text-xs md:text-sm">Tus últimas sesiones de entrenamiento</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3 px-4 pb-4 md:px-6 md:pb-6">
+                <CardContent className="space-y-2 md:space-y-3 px-3 pb-3 md:px-6 md:pb-6">
                   {recentWorkouts.map((workout) => (
-                    <div key={workout.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={workout.id} className="flex items-center justify-between p-2 md:p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <div className="font-medium text-sm md:text-base">{workout.name}</div>
+                        <div className="font-medium text-xs md:text-base">{workout.name}</div>
                         <div className="text-xs md:text-sm text-gray-600">{workout.date} • {workout.duration}</div>
                       </div>
                       <Badge variant="secondary" className="text-xs">{workout.exercises} ejercicios</Badge>
@@ -208,35 +210,39 @@ const Index = () => {
 
               {/* Weekly Summary */}
               <Card>
-                <CardHeader className="px-4 py-3 md:px-6 md:py-4">
-                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-lg">
                     <BarChart3 className="h-4 w-4 md:h-5 md:w-5" />
                     Resumen Semanal
                   </CardTitle>
                   <CardDescription className="text-xs md:text-sm">Tu progreso en los últimos 7 días</CardDescription>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
-                  <div className="space-y-3 md:space-y-4">
+                <CardContent className="px-3 pb-3 md:px-6 md:pb-6">
+                  <div className="space-y-2 md:space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-gray-600">Entrenamientos completados</span>
-                      <span className="font-bold text-sm md:text-base">{completedThisWeek}/{weeklyGoal}</span>
+                      <span className="font-bold text-xs md:text-base">{completedThisWeek}/{weeklyGoal}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-gray-600">Tiempo total</span>
-                      <span className="font-bold text-sm md:text-base">3h 15min</span>
+                      <span className="font-bold text-xs md:text-base">3h 15min</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-gray-600">Calorías quemadas</span>
-                      <span className="font-bold text-sm md:text-base">1,240 kcal</span>
+                      <span className="font-bold text-xs md:text-base">1,240 kcal</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs md:text-sm text-gray-600">Músculos trabajados</span>
-                      <span className="font-bold text-sm md:text-base">Todo el cuerpo</span>
+                      <span className="font-bold text-xs md:text-base">Todo el cuerpo</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="library">
+            <WorkoutLibrary />
           </TabsContent>
 
           <TabsContent value="workout">
