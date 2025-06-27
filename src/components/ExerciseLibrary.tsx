@@ -38,7 +38,8 @@ const ExerciseLibrary = () => {
     { id: "espalda", name: "Espalda", count: exercises.filter(e => e.category === "espalda").length },
     { id: "piernas", name: "Piernas", count: exercises.filter(e => e.category === "piernas").length },
     { id: "hombros", name: "Hombros", count: exercises.filter(e => e.category === "hombros").length },
-    { id: "brazos", name: "Brazos", count: exercises.filter(e => e.category === "brazos").length }
+    { id: "brazos", name: "Brazos", count: exercises.filter(e => e.category === "brazos").length },
+    { id: "abdominales", name: "Abdominales", count: exercises.filter(e => e.category === "abdominales").length }
   ];
 
   const filteredExercises = exercises.filter(exercise => {

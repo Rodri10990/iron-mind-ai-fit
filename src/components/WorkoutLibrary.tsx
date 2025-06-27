@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { workoutPlanService } from "@/services/workoutPlanService";
 import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
+import ManualPlanCreator from "./ManualPlanCreator";
 import { 
   Dumbbell, 
   Play, 
@@ -13,7 +14,9 @@ import {
   Target,
   Calendar,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Plus,
+  Wrench
 } from "lucide-react";
 
 interface WorkoutPlan {
@@ -39,6 +42,7 @@ const WorkoutLibrary = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [activeWorkout, setActiveWorkout] = useState<any>(null);
+  const [showManualCreator, setShowManualCreator] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -169,7 +173,20 @@ const WorkoutLibrary = () => {
     return days.sort((a, b) => a - b);
   };
 
-  // If active workout is running, show workout screen
+  // Show manual creator
+  if (showManualCreator) {
+    return (
+      <ManualPlanCreator
+        onBack={() => setShowManualCreator(false)}
+        onPlanCreated={() => {
+          loadWorkoutPlans();
+          setShowManualCreator(false);
+        }}
+      />
+    );
+  }
+
+  // Show active workout screen
   if (activeWorkout) {
     return (
       <ActiveWorkoutScreen
@@ -197,97 +214,115 @@ const WorkoutLibrary = () => {
     );
   }
 
-  if (workoutPlans.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold mb-2">No hay planes de entrenamiento</h3>
-        <p className="text-gray-600 mb-4">
-          Aún no tienes planes guardados. Utiliza el AI Coach para crear tu primer plan personalizado.
-        </p>
-        <Button onClick={loadWorkoutPlans} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualizar
-        </Button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl md:text-2xl font-bold">Biblioteca de Entrenamientos</h2>
-        <Button onClick={loadWorkoutPlans} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowManualCreator(true)}
+            className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700"
+            size="sm"
+          >
+            <Wrench className="h-4 w-4" />
+            <span className="hidden sm:inline">Crear Plan Manual</span>
+            <span className="sm:hidden">Manual</span>
+          </Button>
+          <Button onClick={loadWorkoutPlans} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {workoutPlans.map((plan) => (
-          <Card key={plan.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="px-4 py-3 md:px-6 md:py-4">
-              <div className="flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  <CardTitle className="text-base md:text-lg truncate">{plan.name}</CardTitle>
-                  <CardDescription className="text-xs md:text-sm mt-1">
-                    {plan.description}
-                  </CardDescription>
-                </div>
-                <Badge className={`text-xs ml-2 flex-shrink-0 ${getDifficultyColor(plan.difficulty)}`}>
-                  {plan.difficulty}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
-              <div className="flex items-center gap-4 text-xs md:text-sm text-gray-600 mb-4">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>{plan.duration_weeks} semanas</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Target className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>{plan.sessions_per_week}x/semana</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Dumbbell className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>{plan.workout_plan_exercises.length} ejercicios</span>
-                </div>
-              </div>
-
-              {/* Preview of exercises */}
-              <div className="space-y-2 mb-4">
-                {getUniqueDays(plan).slice(0, 2).map((day) => {
-                  const dayExercises = getExercisesByDay(plan, day);
-                  return (
-                    <div key={day} className="p-2 bg-gray-50 rounded">
-                      <div className="text-xs font-medium mb-1">Día {day}:</div>
-                      <div className="text-xs text-gray-600">
-                        {dayExercises.slice(0, 3).map(ex => ex.exercise_name).join(', ')}
-                        {dayExercises.length > 3 && ` +${dayExercises.length - 3} más`}
-                      </div>
-                    </div>
-                  );
-                })}
-                {getUniqueDays(plan).length > 2 && (
-                  <div className="text-xs text-gray-500 text-center py-1">
-                    +{getUniqueDays(plan).length - 2} días más
+      {workoutPlans.length === 0 ? (
+        <div className="text-center py-12">
+          <Dumbbell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <h3 className="text-lg font-semibold mb-2">No hay planes de entrenamiento</h3>
+          <p className="text-gray-600 mb-4">
+            Crea tu primer plan manualmente o utiliza el AI Coach para generar uno personalizado.
+          </p>
+          <div className="flex justify-center gap-2">
+            <Button
+              onClick={() => setShowManualCreator(true)}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Plan Manual
+            </Button>
+            <Button onClick={loadWorkoutPlans} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          {workoutPlans.map((plan) => (
+            <Card key={plan.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="px-4 py-3 md:px-6 md:py-4">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base md:text-lg truncate">{plan.name}</CardTitle>
+                    <CardDescription className="text-xs md:text-sm mt-1">
+                      {plan.description}
+                    </CardDescription>
                   </div>
-                )}
-              </div>
+                  <Badge className={`text-xs ml-2 flex-shrink-0 ${getDifficultyColor(plan.difficulty)}`}>
+                    {plan.difficulty}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 md:px-6 md:pb-6">
+                <div className="flex items-center gap-4 text-xs md:text-sm text-gray-600 mb-4">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+                    <span>{plan.duration_weeks} semanas</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Target className="h-3 w-3 md:h-4 md:w-4" />
+                    <span>{plan.sessions_per_week}x/semana</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Dumbbell className="h-3 w-3 md:h-4 md:w-4" />
+                    <span>{plan.workout_plan_exercises.length} ejercicios</span>
+                  </div>
+                </div>
 
-              <Button
-                onClick={() => startWorkout(plan)}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-sm"
-                size="sm"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                Comenzar Entrenamiento
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                {/* Preview of exercises */}
+                <div className="space-y-2 mb-4">
+                  {getUniqueDays(plan).slice(0, 2).map((day) => {
+                    const dayExercises = getExercisesByDay(plan, day);
+                    return (
+                      <div key={day} className="p-2 bg-gray-50 rounded">
+                        <div className="text-xs font-medium mb-1">Día {day}:</div>
+                        <div className="text-xs text-gray-600">
+                          {dayExercises.slice(0, 3).map(ex => ex.exercise_name).join(', ')}
+                          {dayExercises.length > 3 && ` +${dayExercises.length - 3} más`}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {getUniqueDays(plan).length > 2 && (
+                    <div className="text-xs text-gray-500 text-center py-1">
+                      +{getUniqueDays(plan).length - 2} días más
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => startWorkout(plan)}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-sm"
+                  size="sm"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Comenzar Entrenamiento
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Selected Plan Details */}
       {selectedPlan && (
