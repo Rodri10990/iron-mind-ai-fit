@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { workoutPlanService } from "@/services/workoutPlanService";
+import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
 import { 
   Dumbbell, 
   Play, 
@@ -38,6 +38,7 @@ const WorkoutLibrary = () => {
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -79,11 +80,82 @@ const WorkoutLibrary = () => {
   };
 
   const startWorkout = (plan: WorkoutPlan) => {
-    setSelectedPlan(plan);
+    // Convert plan to workout format
+    const convertedWorkout = {
+      name: plan.name,
+      exercises: getUniqueDays(plan).flatMap(day => {
+        const dayExercises = getExercisesByDay(plan, day);
+        return dayExercises.map(ex => ({
+          id: Math.random(),
+          name: ex.exercise_name,
+          sets: Array.from({ length: ex.sets }, () => ({
+            reps: parseInt(ex.reps) || 10,
+            weight: 0,
+            completed: false
+          })),
+          image: getExerciseImage(ex.exercise_name),
+          tips: getExerciseTips(ex.exercise_name),
+          restTime: ex.rest_seconds
+        }));
+      })
+    };
+
+    setActiveWorkout(convertedWorkout);
     toast({
-      title: "Plan seleccionado",
-      description: `Has seleccionado "${plan.name}". ¡Comienza tu entrenamiento!`,
+      title: "¡Entrenamiento iniciado!",
+      description: `Comenzando "${plan.name}". ¡Vamos a entrenar!`,
     });
+  };
+
+  const getExerciseImage = (exerciseName: string) => {
+    // Map exercise names to appropriate images
+    const exerciseImageMap: { [key: string]: string } = {
+      'press de banca': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
+      'press inclinado': 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
+      'flexiones': 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop',
+      'sentadilla': 'https://images.unsplash.com/photo-1566241134943-5f5c8c3e5bea?w=800&h=600&fit=crop',
+      'peso muerto': 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&h=600&fit=crop',
+      'dominadas': 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop'
+    };
+    
+    const lowerName = exerciseName.toLowerCase();
+    for (const [key, image] of Object.entries(exerciseImageMap)) {
+      if (lowerName.includes(key)) {
+        return image;
+      }
+    }
+    
+    // Default exercise image
+    return 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop';
+  };
+
+  const getExerciseTips = (exerciseName: string) => {
+    const tipsMap: { [key: string]: string[] } = {
+      'press de banca': [
+        "Mantén los omóplatos retraídos",
+        "Controla la bajada",
+        "Mantén los pies firmes"
+      ],
+      'sentadilla': [
+        "Mantén la espalda recta",
+        "Baja hasta que los muslos estén paralelos",
+        "Impulsa con los talones"
+      ],
+      'peso muerto': [
+        "Mantén la barra cerca del cuerpo",
+        "Activa el core",
+        "Extiende cadera y rodillas simultáneamente"
+      ]
+    };
+    
+    const lowerName = exerciseName.toLowerCase();
+    for (const [key, tips] of Object.entries(tipsMap)) {
+      if (lowerName.includes(key)) {
+        return tips;
+      }
+    }
+    
+    return ["Mantén buena técnica", "Controla el movimiento", "Respira correctamente"];
   };
 
   const getExercisesByDay = (plan: WorkoutPlan, day: number) => {
@@ -96,6 +168,23 @@ const WorkoutLibrary = () => {
     const days = [...new Set(plan.workout_plan_exercises.map(ex => ex.day_number))];
     return days.sort((a, b) => a - b);
   };
+
+  // If active workout is running, show workout screen
+  if (activeWorkout) {
+    return (
+      <ActiveWorkoutScreen
+        workout={activeWorkout}
+        onBack={() => setActiveWorkout(null)}
+        onFinishWorkout={() => {
+          setActiveWorkout(null);
+          toast({
+            title: "¡Entrenamiento completado!",
+            description: "¡Excelente trabajo!",
+          });
+        }}
+      />
+    );
+  }
 
   if (isLoading) {
     return (

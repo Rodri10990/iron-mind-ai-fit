@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { workoutPlanService, WorkoutPlanData } from "@/services/workoutPlanService";
+import { useChatHistory } from "@/hooks/useChatHistory";
 import { 
   Brain, 
   Send, 
@@ -20,7 +20,8 @@ import {
   Calendar,
   Loader2,
   Plus,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from "lucide-react";
 
 interface ChatMessage {
@@ -34,13 +35,7 @@ const AICoach = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const { toast } = useToast();
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    {
-      type: "ai",
-      message: "¡Hola! Soy tu entrenador personal AI powered by Google Gemini. Estoy aquí para ayudarte con rutinas personalizadas, consejos de técnica, nutrición y motivación. También puedo crear planes de entrenamiento personalizados y guardarlos en tu biblioteca. ¿En qué puedo ayudarte hoy?",
-      timestamp: "10:30"
-    }
-  ]);
+  const { chatHistory, setChatHistory, addMessage, clearHistory } = useChatHistory();
 
   const recommendations = [
     {
@@ -208,7 +203,7 @@ const AICoach = () => {
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        setChatHistory(prev => [...prev, successMessage]);
+        addMessage(successMessage);
       } else {
         toast({
           title: "Error al crear el plan",
@@ -242,7 +237,7 @@ const AICoach = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
-    setChatHistory(prev => [...prev, newUserMessage]);
+    addMessage(newUserMessage);
     
     try {
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
@@ -270,7 +265,7 @@ const AICoach = () => {
         timestamp: data.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
-      setChatHistory(prev => [...prev, aiMessage]);
+      addMessage(aiMessage);
 
       // Check if the response contains a workout plan and if user wants to save it
       const workoutPlan = parseWorkoutPlanFromResponse(aiResponse);
@@ -283,7 +278,7 @@ const AICoach = () => {
         };
         
         setTimeout(() => {
-          setChatHistory(prev => [...prev, followUpMessage]);
+          addMessage(followUpMessage);
         }, 1000);
       }
 
@@ -296,11 +291,11 @@ const AICoach = () => {
       });
       
       // Add error message to chat
-      setChatHistory(prev => [...prev, {
+      addMessage({
         type: "ai",
         message: "Lo siento, hubo un problema al procesar tu mensaje. Por favor intenta de nuevo.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }]);
+      });
     } finally {
       setIsLoading(false);
     }
@@ -405,13 +400,24 @@ const AICoach = () => {
       <div className="lg:col-span-2">
         <Card className="h-[500px] md:h-[600px] flex flex-col">
           <CardHeader className="px-3 py-2 md:px-6 md:py-4">
-            <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-              <Brain className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
-              Chat con tu Entrenador AI
-              <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700 border-green-200">
-                Powered by Gemini
-              </Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                <Brain className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
+                Chat con tu Entrenador AI
+                <Badge variant="outline" className="ml-2 text-xs bg-green-50 text-green-700 border-green-200">
+                  Powered by Gemini
+                </Badge>
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearHistory}
+                className="text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                Limpiar
+              </Button>
+            </div>
             <CardDescription className="text-xs md:text-sm">
               Pregúntame sobre rutinas, técnica, progreso o pídeme que cree un plan personalizado
             </CardDescription>
@@ -477,21 +483,22 @@ const AICoach = () => {
               </div>
             )}
 
-            {/* Message Input */}
-            <div className="flex gap-1 md:gap-2">
+            {/* Message Input - Fixed for mobile */}
+            <div className="flex gap-1 md:gap-2 relative">
               <Input
-                placeholder="Pregúntame sobre tu entrenamiento o pídeme crear un plan..."
+                placeholder="Pregúntame sobre tu entrenamiento..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                className="flex-1 text-xs md:text-sm h-8 md:h-10"
+                className="flex-1 text-xs md:text-sm h-10 md:h-12 pr-12"
                 disabled={isLoading}
+                style={{ paddingBottom: 'env(keyboard-inset-height, 0px)' }}
               />
               <Button 
                 onClick={sendMessage} 
                 disabled={!message.trim() || isLoading}
                 size="sm"
-                className="h-8 md:h-10 px-2 md:px-4"
+                className="h-10 md:h-12 px-3 md:px-4 absolute right-1 top-1/2 transform -translate-y-1/2"
               >
                 {isLoading ? (
                   <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
@@ -518,7 +525,7 @@ const AICoach = () => {
             </div>
 
             {/* AI Status */}
-            <div className="flex items-center gap-1 md:gap-2 mt-2 md:mt-2 text-xs text-gray-500">
+            <div className="flex items-center gap-1 md:gap-2 mt-2 md:mt-2 text-xs text-gray-500 pb-safe">
               <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>AI Entrenador activo • Powered by Google Gemini</span>
             </div>

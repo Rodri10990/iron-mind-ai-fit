@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import WorkoutTimer from "./WorkoutTimer";
 import WorkoutExerciseCard from "./WorkoutExerciseCard";
@@ -11,7 +10,7 @@ const WorkoutTracker = () => {
   const [showActiveWorkout, setShowActiveWorkout] = useState(false);
   const { toast } = useToast();
   
-  // Mock workout data con datos completos para la nueva funcionalidad
+  // Mock workout data con imágenes corregidas para cada ejercicio
   const [workout] = useState({
     name: "Push Day - Pecho y Tríceps",
     exercises: [
@@ -40,7 +39,7 @@ const WorkoutTracker = () => {
           { reps: 10, weight: 27.5, completed: false },
           { reps: 8, weight: 30, completed: false }
         ],
-        image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop",
         tips: [
           "Ajusta el banco a 30-45 grados de inclinación",
           "Mantén los codos ligeramente flexionados",
@@ -56,7 +55,7 @@ const WorkoutTracker = () => {
           { reps: 12, weight: 0, completed: false },
           { reps: 10, weight: 0, completed: false }
         ],
-        image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop",
+        image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop",
         tips: [
           "Mantén el cuerpo recto como una tabla",
           "Baja hasta que el pecho casi toque el suelo",
