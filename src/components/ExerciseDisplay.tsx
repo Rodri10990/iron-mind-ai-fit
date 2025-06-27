@@ -2,7 +2,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Lightbulb, Play } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { CheckCircle, Lightbulb, Play, Plus, Minus } from "lucide-react";
 
 interface WorkoutSet {
   reps: number;
@@ -25,16 +26,30 @@ interface ExerciseDisplayProps {
   currentSetIndex: number;
   onCompleteSet: () => void;
   onSetIndexChange: (index: number) => void;
+  onUpdateSet?: (setIndex: number, field: string, value: number) => void;
 }
 
 const ExerciseDisplay = ({ 
   exercise, 
   currentSetIndex, 
   onCompleteSet, 
-  onSetIndexChange 
+  onSetIndexChange,
+  onUpdateSet 
 }: ExerciseDisplayProps) => {
   const currentSet = exercise.sets[currentSetIndex];
   const completedSets = exercise.sets.filter(set => set.completed).length;
+
+  const handleUpdateReps = (value: number) => {
+    if (onUpdateSet && !currentSet.completed) {
+      onUpdateSet(currentSetIndex, 'reps', Math.max(1, value));
+    }
+  };
+
+  const handleUpdateWeight = (value: number) => {
+    if (onUpdateSet && !currentSet.completed) {
+      onUpdateSet(currentSetIndex, 'weight', Math.max(0, value));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -104,7 +119,7 @@ const ExerciseDisplay = ({
         </CardContent>
       </Card>
 
-      {/* Current Set */}
+      {/* Current Set with Input Controls */}
       {currentSet && (
         <Card className="border-2 border-orange-200">
           <CardHeader className="pb-3">
@@ -113,18 +128,78 @@ const ExerciseDisplay = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center space-y-4">
+            <div className="space-y-6">
+              {/* Input Controls for Reps and Weight */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">{currentSet.reps}</div>
-                  <div className="text-sm text-gray-600">Repeticiones</div>
+                {/* Reps Control */}
+                <div className="text-center space-y-2">
+                  <div className="text-sm text-gray-600 font-medium">Repeticiones</div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleUpdateReps(currentSet.reps - 1)}
+                      disabled={currentSet.completed || currentSet.reps <= 1}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={currentSet.reps}
+                      onChange={(e) => handleUpdateReps(parseInt(e.target.value) || 1)}
+                      className="w-16 h-8 text-center text-lg font-bold"
+                      disabled={currentSet.completed}
+                      min="1"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleUpdateReps(currentSet.reps + 1)}
+                      disabled={currentSet.completed}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">{currentSet.weight}</div>
-                  <div className="text-sm text-gray-600">kg</div>
+
+                {/* Weight Control */}
+                <div className="text-center space-y-2">
+                  <div className="text-sm text-gray-600 font-medium">Peso (kg)</div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleUpdateWeight(currentSet.weight - 2.5)}
+                      disabled={currentSet.completed || currentSet.weight <= 0}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={currentSet.weight}
+                      onChange={(e) => handleUpdateWeight(parseFloat(e.target.value) || 0)}
+                      className="w-20 h-8 text-center text-lg font-bold"
+                      disabled={currentSet.completed}
+                      min="0"
+                      step="2.5"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleUpdateWeight(currentSet.weight + 2.5)}
+                      disabled={currentSet.completed}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               
+              {/* Complete Set Button */}
               <Button
                 onClick={onCompleteSet}
                 className="w-full bg-green-600 hover:bg-green-700 text-white"

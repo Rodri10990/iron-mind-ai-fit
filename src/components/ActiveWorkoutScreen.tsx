@@ -41,8 +41,9 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isWorkoutActive, setIsWorkoutActive] = useState(true);
+  const [workoutExercises, setWorkoutExercises] = useState(workout.exercises);
 
-  const currentExercise = workout.exercises[currentExerciseIndex];
+  const currentExercise = workoutExercises[currentExerciseIndex];
   const currentSet = currentExercise?.sets[currentSetIndex];
 
   // Timer del entrenamiento
@@ -62,12 +63,19 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const updateSet = (setIndex: number, field: string, value: number) => {
+    const updatedExercises = [...workoutExercises];
+    updatedExercises[currentExerciseIndex].sets[setIndex][field] = value;
+    setWorkoutExercises(updatedExercises);
+  };
+
   const completeSet = () => {
     if (!currentExercise || !currentSet) return;
 
     // Marcar serie como completada
-    const updatedExercises = [...workout.exercises];
+    const updatedExercises = [...workoutExercises];
     updatedExercises[currentExerciseIndex].sets[currentSetIndex].completed = true;
+    setWorkoutExercises(updatedExercises);
 
     // Verificar si hay más series en este ejercicio
     const remainingSets = currentExercise.sets.slice(currentSetIndex + 1);
@@ -85,7 +93,7 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
   };
 
   const moveToNextExercise = () => {
-    if (currentExerciseIndex < workout.exercises.length - 1) {
+    if (currentExerciseIndex < workoutExercises.length - 1) {
       setCurrentExerciseIndex(prev => prev + 1);
       setCurrentSetIndex(0);
       setIsResting(false);
@@ -119,8 +127,8 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
     }
   };
 
-  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
-  const completedSets = workout.exercises.reduce((acc, ex) => 
+  const totalSets = workoutExercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+  const completedSets = workoutExercises.reduce((acc, ex) => 
     acc + ex.sets.filter(set => set.completed).length, 0
   );
   const progressPercentage = (completedSets / totalSets) * 100;
@@ -166,7 +174,7 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
           </div>
           <Progress value={progressPercentage} className="h-2" />
           <div className="flex justify-between text-xs text-gray-600 mt-1">
-            <span>Ejercicio {currentExerciseIndex + 1} de {workout.exercises.length}</span>
+            <span>Ejercicio {currentExerciseIndex + 1} de {workoutExercises.length}</span>
             <span>{Math.round(progressPercentage)}% completado</span>
           </div>
         </CardContent>
@@ -191,6 +199,7 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
           currentSetIndex={currentSetIndex}
           onCompleteSet={completeSet}
           onSetIndexChange={setCurrentSetIndex}
+          onUpdateSet={updateSet}
         />
       )}
     </div>
