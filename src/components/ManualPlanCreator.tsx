@@ -40,6 +40,17 @@ const ManualPlanCreator = ({ onBack, onPlanCreated }: ManualPlanCreatorProps) =>
   const { exercises } = useExercises();
   const { toast } = useToast();
 
+  // Get exercises that are already used in the plan
+  const getUsedExercises = () => {
+    return planExercises.map(ex => ex.exercise_name).filter(name => name !== "");
+  };
+
+  // Get available exercises (not already used in the plan)
+  const getAvailableExercises = () => {
+    const usedExercises = getUsedExercises();
+    return exercises.filter(ex => !usedExercises.includes(ex.name));
+  };
+
   const addExercise = () => {
     const newExercise: PlanExercise = {
       day_number: currentDay,
@@ -273,11 +284,17 @@ const ManualPlanCreator = ({ onBack, onPlanCreated }: ManualPlanCreatorProps) =>
               onClick={addExercise}
               size="sm"
               className="flex items-center gap-2"
+              disabled={getAvailableExercises().length === 0}
             >
               <Plus className="h-4 w-4" />
               Agregar Ejercicio
             </Button>
           </div>
+          {getAvailableExercises().length === 0 && (
+            <p className="text-sm text-gray-500 mt-2">
+              No hay más ejercicios disponibles. Ya has agregado todos los ejercicios disponibles al plan.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-64 md:h-80">
@@ -287,6 +304,11 @@ const ManualPlanCreator = ({ onBack, onPlanCreated }: ManualPlanCreatorProps) =>
                   ex.day_number === currentDay && 
                   planExercises.filter(e => e.day_number === currentDay).indexOf(ex) === dayIndex
                 );
+                
+                // Get available exercises for this specific dropdown
+                const availableForThisExercise = exercise.exercise_name 
+                  ? [...getAvailableExercises(), exercises.find(ex => ex.name === exercise.exercise_name)].filter(Boolean)
+                  : getAvailableExercises();
                 
                 return (
                   <div key={globalIndex} className="border rounded-lg p-4 space-y-3">
@@ -312,11 +334,16 @@ const ManualPlanCreator = ({ onBack, onPlanCreated }: ManualPlanCreatorProps) =>
                             <SelectValue placeholder="Seleccionar ejercicio..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {exercises.map(ex => (
+                            {availableForThisExercise.map(ex => (
                               <SelectItem key={ex.id} value={ex.name}>
                                 {ex.name} ({ex.category})
                               </SelectItem>
                             ))}
+                            {availableForThisExercise.length === 0 && (
+                              <SelectItem value="" disabled>
+                                No hay ejercicios disponibles
+                              </SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
