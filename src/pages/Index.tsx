@@ -103,7 +103,7 @@ const Index = () => {
 
           <TabsContent value="plans" className="mt-0">
             <div className="space-y-6">
-              <WorkoutLibrary onStartWorkout={() => handleWorkoutStateChange(true)} />
+              <WorkoutLibrary />
             </div>
           </TabsContent>
 
