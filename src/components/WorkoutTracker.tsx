@@ -1,10 +1,15 @@
+
 import { useState } from "react";
 import WorkoutTimer from "./WorkoutTimer";
 import WorkoutExerciseCard from "./WorkoutExerciseCard";
 import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
 import { useToast } from "@/hooks/use-toast";
 
-const WorkoutTracker = () => {
+interface WorkoutTrackerProps {
+  onWorkoutStateChange?: (isActive: boolean) => void;
+}
+
+const WorkoutTracker = ({ onWorkoutStateChange }: WorkoutTrackerProps) => {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [currentExercise, setCurrentExercise] = useState(0);
   const [showActiveWorkout, setShowActiveWorkout] = useState(false);
@@ -29,7 +34,7 @@ const WorkoutTracker = () => {
           "Baja la barra de forma controlada hasta el pecho",
           "Mantén los pies firmes en el suelo"
         ],
-        restTime: 120 // 2 minutos
+        restTime: 120
       },
       {
         id: 2,
@@ -45,7 +50,7 @@ const WorkoutTracker = () => {
           "Mantén los codos ligeramente flexionados",
           "Controla el movimiento en toda la amplitud"
         ],
-        restTime: 90 // 1.5 minutos
+        restTime: 90
       },
       {
         id: 3,
@@ -61,7 +66,7 @@ const WorkoutTracker = () => {
           "Baja hasta que el pecho casi toque el suelo",
           "Mantén los codos pegados al cuerpo"
         ],
-        restTime: 60 // 1 minuto
+        restTime: 60
       }
     ]
   });
@@ -83,6 +88,7 @@ const WorkoutTracker = () => {
   const handleStartWorkout = () => {
     setIsWorkoutActive(true);
     setShowActiveWorkout(true);
+    onWorkoutStateChange?.(true);
     toast({
       title: "¡Entrenamiento iniciado!",
       description: "¡Vamos a entrenar! Sigue las instrucciones en pantalla.",
@@ -100,6 +106,7 @@ const WorkoutTracker = () => {
   const handleFinishWorkout = () => {
     setIsWorkoutActive(false);
     setShowActiveWorkout(false);
+    onWorkoutStateChange?.(false);
     toast({
       title: "¡Entrenamiento completado!",
       description: "¡Excelente trabajo! Has terminado tu entrenamiento.",
@@ -122,10 +129,8 @@ const WorkoutTracker = () => {
     );
   }
 
-  // Vista general del entrenamiento (existente)
   return (
     <div className="space-y-4 md:space-y-6 px-2 md:px-0">
-      {/* Workout Header */}
       <WorkoutTimer
         workoutName={workout.name}
         totalExercises={exerciseData.length}
@@ -134,7 +139,6 @@ const WorkoutTracker = () => {
         onToggleWorkout={handleStartWorkout}
       />
 
-      {/* Exercise Cards */}
       <div className="space-y-3 md:space-y-4">
         {exerciseData.map((exercise, exerciseIndex) => (
           <WorkoutExerciseCard
