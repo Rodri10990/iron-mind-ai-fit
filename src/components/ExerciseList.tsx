@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +11,8 @@ interface Exercise {
   name: string;
   category: string;
   primaryMuscles: string[];
-  instructions: string;
-  tips: string;
+  instructions: string[];
+  tips: string[];
   image?: string;
 }
 
