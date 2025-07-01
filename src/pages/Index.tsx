@@ -2,12 +2,14 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import WorkoutTracker from "@/components/WorkoutTracker";
+import EnhancedWorkoutTracker from "@/components/EnhancedWorkoutTracker";
 import ExerciseLibrary from "@/components/ExerciseLibrary";
 import ProgressCharts from "@/components/ProgressCharts";
 import WorkoutLibrary from "@/components/WorkoutLibrary";
+import WorkoutHistory from "@/components/WorkoutHistory";
 import AICoach from "@/components/AICoach";
-import { Dumbbell, BookOpen, Home, Calendar, Brain, Settings } from "lucide-react";
+import NotificationSystem from "@/components/NotificationSystem";
+import { Dumbbell, BookOpen, Home, Calendar, Brain, Settings, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
@@ -29,6 +31,7 @@ const Index = () => {
       { value: "home", icon: Home, label: "Principal" },
       { value: "exercises", icon: BookOpen, label: "Ejercicios" },
       { value: "plans", icon: Calendar, label: "Planes" },
+      { value: "history", icon: History, label: "Historial" },
       { value: "ai-coach", icon: Brain, label: "AI Coach" }
     ];
 
@@ -48,7 +51,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <div className="container mx-auto px-2 md:px-4 py-4 md:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full mb-4 md:mb-6 ${isWorkoutActive ? 'grid-cols-5' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full mb-4 md:mb-6 ${isWorkoutActive ? 'grid-cols-6' : 'grid-cols-5'}`}>
             {tabs.map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -64,7 +67,7 @@ const Index = () => {
           {/* Página Principal */}
           <TabsContent value="home" className="mt-0">
             <div className="space-y-6">
-              {/* Header con botón de configuración */}
+              {/* Header con notificaciones y configuración */}
               <div className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg">
                 <div>
                   <h1 className="text-xl md:text-2xl font-bold text-gray-900">
@@ -74,14 +77,32 @@ const Index = () => {
                     Tu entrenador personal con IA
                   </p>
                 </div>
+                <div className="flex items-center gap-2">
+                  <NotificationSystem />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/settings')}
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Config</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Quick Start Workout Button */}
+              <div className="text-center">
                 <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/settings')}
-                  className="flex items-center gap-2"
+                  onClick={() => {
+                    setActiveTab("workout");
+                    handleWorkoutStateChange(true);
+                  }}
+                  size="lg"
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-8 py-4"
                 >
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Configuración</span>
+                  <Dumbbell className="h-6 w-6 mr-3" />
+                  Iniciar Entrenamiento
                 </Button>
               </div>
 
@@ -93,7 +114,7 @@ const Index = () => {
           {/* Entreno (solo visible cuando hay entrenamiento activo) */}
           {isWorkoutActive && (
             <TabsContent value="workout" className="mt-0">
-              <WorkoutTracker onWorkoutStateChange={handleWorkoutStateChange} />
+              <EnhancedWorkoutTracker onWorkoutStateChange={handleWorkoutStateChange} />
             </TabsContent>
           )}
 
@@ -105,6 +126,10 @@ const Index = () => {
             <div className="space-y-6">
               <WorkoutLibrary />
             </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-0">
+            <WorkoutHistory />
           </TabsContent>
 
           <TabsContent value="ai-coach" className="mt-0">
