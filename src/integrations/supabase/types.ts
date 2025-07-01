@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      exercise_media: {
+        Row: {
+          created_at: string
+          description: string | null
+          exercise_name: string
+          id: string
+          media_type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          exercise_name: string
+          id?: string
+          media_type: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          exercise_name?: string
+          id?: string
+          media_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
       workout_plan_exercises: {
         Row: {
           created_at: string
@@ -91,6 +118,86 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workout_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          started_at: string
+          total_duration_minutes: number | null
+          user_id: string
+          workout_name: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at: string
+          total_duration_minutes?: number | null
+          user_id: string
+          workout_name: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          total_duration_minutes?: number | null
+          user_id?: string
+          workout_name?: string
+        }
+        Relationships: []
+      }
+      workout_sets: {
+        Row: {
+          created_at: string
+          exercise_name: string
+          id: string
+          notes: string | null
+          reps: number
+          rest_seconds: number | null
+          rpe: number | null
+          session_id: string
+          set_number: number
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          exercise_name: string
+          id?: string
+          notes?: string | null
+          reps: number
+          rest_seconds?: number | null
+          rpe?: number | null
+          session_id: string
+          set_number: number
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          exercise_name?: string
+          id?: string
+          notes?: string | null
+          reps?: number
+          rest_seconds?: number | null
+          rpe?: number | null
+          session_id?: string
+          set_number?: number
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_sets_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

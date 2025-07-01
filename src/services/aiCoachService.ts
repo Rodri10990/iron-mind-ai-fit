@@ -52,6 +52,7 @@ export const aiCoachService = {
       console.error('Error getting AI recommendation:', error);
       
       // Fallback: recomendación básica basada en el último entrenamiento
+      const exerciseHistory = await workoutHistoryService.getExerciseHistory(exerciseName, 5);
       if (exerciseHistory.length > 0) {
         const lastSet = exerciseHistory[0];
         const suggestedWeight = lastSet.rpe && lastSet.rpe <= 7 
