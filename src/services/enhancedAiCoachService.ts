@@ -1,4 +1,3 @@
-
 import { workoutHistoryService } from "./workoutHistoryService";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -123,13 +122,13 @@ export const enhancedAiCoachService = {
     }
   },
 
-  private calculateConfidenceLevel(historyLength: number, workoutFrequency: number): 'high' | 'medium' | 'low' {
+  calculateConfidenceLevel(historyLength: number, workoutFrequency: number): 'high' | 'medium' | 'low' {
     if (historyLength >= 8 && workoutFrequency >= 3) return 'high';
     if (historyLength >= 4 && workoutFrequency >= 2) return 'medium';
     return 'low';
   },
 
-  private async generateFallbackRecommendation(exerciseName: string): Promise<EnhancedAIRecommendation> {
+  async generateFallbackRecommendation(exerciseName: string): Promise<EnhancedAIRecommendation> {
     try {
       const exerciseHistory = await workoutHistoryService.getExerciseHistory(exerciseName, 3);
       
