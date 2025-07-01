@@ -1,17 +1,17 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { TrendingUp, TrendingDown, Minus, Target } from "lucide-react";
 import { workoutHistoryService } from "@/services/workoutHistoryService";
+import type { ProgressAnalytics, WorkoutSet } from "@/types/workout";
 
 interface ExerciseProgressChartProps {
   exerciseName: string;
 }
 
 const ExerciseProgressChart = ({ exerciseName }: ExerciseProgressChartProps) => {
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<ProgressAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,12 +67,12 @@ const ExerciseProgressChart = ({ exerciseName }: ExerciseProgressChartProps) => 
   };
 
   // Preparar datos para el gráfico
-  const chartData = analytics.recentSets.map((set: any, index: number) => ({
+  const chartData = analytics?.recentSets.map((set: WorkoutSet, index: number) => ({
     sesion: `S${index + 1}`,
     peso: set.weight_kg,
     reps: set.reps,
     volumen: set.weight_kg * set.reps
-  }));
+  })) || [];
 
   return (
     <div className="space-y-4">

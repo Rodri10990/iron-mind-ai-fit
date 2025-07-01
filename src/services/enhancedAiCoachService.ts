@@ -1,5 +1,6 @@
 import { workoutHistoryService } from "./workoutHistoryService";
 import { supabase } from "@/integrations/supabase/client";
+import type { WorkoutSession } from "@/types/workout";
 
 export interface EnhancedAIRecommendation {
   exerciseName: string;
@@ -52,7 +53,7 @@ export const enhancedAiCoachService = {
           exerciseName,
           exerciseHistory: exerciseHistory.slice(0, 8),
           analytics,
-          recentSessions: recentSessions.map(s => ({
+          recentSessions: recentSessions.map((s: WorkoutSession) => ({
             workout_name: s.workout_name,
             duration: s.total_duration_minutes,
             completed: !!s.completed_at
