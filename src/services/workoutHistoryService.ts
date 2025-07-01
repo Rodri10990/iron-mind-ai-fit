@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkoutSession {
@@ -154,7 +153,12 @@ export const workoutHistoryService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Type assertion to ensure media_type conforms to our interface
+    return (data || []).map(item => ({
+      ...item,
+      media_type: item.media_type as 'image' | 'video'
+    }));
   },
 
   // Progress Analytics
