@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { workoutPlanService } from "@/services/workoutPlanService";
+import { exerciseMediaService } from "@/services/exerciseMediaService";
 import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
 import ManualPlanCreator from "./ManualPlanCreator";
 import { 
@@ -83,36 +84,18 @@ const WorkoutLibrary = () => {
     }
   };
 
-  const startWorkout = (plan: WorkoutPlan) => {
-    // Convert plan to workout format
-    const convertedWorkout = {
-      name: plan.name,
-      exercises: getUniqueDays(plan).flatMap(day => {
-        const dayExercises = getExercisesByDay(plan, day);
-        return dayExercises.map(ex => ({
-          id: Math.random(),
-          name: ex.exercise_name,
-          sets: Array.from({ length: ex.sets }, () => ({
-            reps: parseInt(ex.reps) || 10,
-            weight: 0,
-            completed: false
-          })),
-          image: getExerciseImage(ex.exercise_name),
-          tips: getExerciseTips(ex.exercise_name),
-          restTime: ex.rest_seconds
-        }));
-      })
-    };
-
-    setActiveWorkout(convertedWorkout);
-    toast({
-      title: "¡Entrenamiento iniciado!",
-      description: `Comenzando "${plan.name}". ¡Vamos a entrenar!`,
-    });
+  const getExerciseMedia = async (exerciseName: string) => {
+    try {
+      const media = await exerciseMediaService.getExerciseMedia(exerciseName);
+      return media.find(m => m.media_type === 'image')?.url || getDefaultExerciseImage(exerciseName);
+    } catch (error) {
+      console.error('Error loading exercise media:', error);
+      return getDefaultExerciseImage(exerciseName);
+    }
   };
 
-  const getExerciseImage = (exerciseName: string) => {
-    // Map exercise names to appropriate images
+  const getDefaultExerciseImage = (exerciseName: string) => {
+    // Fallback images based on exercise name
     const exerciseImageMap: { [key: string]: string } = {
       'press de banca': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop',
       'press inclinado': 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&h=600&fit=crop',
@@ -129,8 +112,43 @@ const WorkoutLibrary = () => {
       }
     }
     
-    // Default exercise image
     return 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop';
+  };
+
+  const startWorkout = async (plan: WorkoutPlan) => {
+    // Convert plan to workout format with real exercise media
+    const uniqueDays = getUniqueDays(plan);
+    const exercisesWithMedia = await Promise.all(
+      uniqueDays.flatMap(day => {
+        const dayExercises = getExercisesByDay(plan, day);
+        return dayExercises.map(async (ex) => {
+          const exerciseImage = await getExerciseMedia(ex.exercise_name);
+          return {
+            id: Math.random(),
+            name: ex.exercise_name,
+            sets: Array.from({ length: ex.sets }, () => ({
+              reps: parseInt(ex.reps) || 10,
+              weight: 0,
+              completed: false
+            })),
+            image: exerciseImage,
+            tips: getExerciseTips(ex.exercise_name),
+            restTime: ex.rest_seconds
+          };
+        });
+      })
+    );
+
+    const convertedWorkout = {
+      name: plan.name,
+      exercises: exercisesWithMedia
+    };
+
+    setActiveWorkout(convertedWorkout);
+    toast({
+      title: "¡Entrenamiento iniciado!",
+      description: `Comenzando "${plan.name}". ¡Vamos a entrenar!`,
+    });
   };
 
   const getExerciseTips = (exerciseName: string) => {

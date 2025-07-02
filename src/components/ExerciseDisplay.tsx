@@ -1,9 +1,12 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CheckCircle, Lightbulb, Play, Plus, Minus } from "lucide-react";
+import { exerciseMediaService } from "@/services/exerciseMediaService";
+import type { ExerciseMedia } from "@/types/workout";
 
 interface WorkoutSet {
   reps: number;
@@ -36,6 +39,24 @@ const ExerciseDisplay = ({
   onSetIndexChange,
   onUpdateSet 
 }: ExerciseDisplayProps) => {
+  const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(true);
+
+  useEffect(() => {
+    const loadExerciseMedia = async () => {
+      try {
+        const media = await exerciseMediaService.getExerciseMedia(exercise.name);
+        setExerciseMedia(media);
+      } catch (error) {
+        console.error('Error loading exercise media:', error);
+      } finally {
+        setIsLoadingMedia(false);
+      }
+    };
+
+    loadExerciseMedia();
+  }, [exercise.name]);
+
   const currentSet = exercise.sets[currentSetIndex];
   const completedSets = exercise.sets.filter(set => set.completed).length;
 
@@ -50,6 +71,10 @@ const ExerciseDisplay = ({
       onUpdateSet(currentSetIndex, 'weight', Math.max(0, value));
     }
   };
+
+  // Get the primary image and video from the media array
+  const primaryImage = exerciseMedia.find(media => media.media_type === 'image')?.url || exercise.image;
+  const primaryVideo = exerciseMedia.find(media => media.media_type === 'video')?.url || exercise.videoUrl;
 
   return (
     <div className="space-y-4">
@@ -66,10 +91,16 @@ const ExerciseDisplay = ({
         <CardContent>
           {/* Exercise Media */}
           <div className="mb-4">
-            {exercise.videoUrl ? (
+            {isLoadingMedia ? (
+              <div className="bg-gray-100 rounded-lg aspect-video flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <div className="text-sm">Cargando media...</div>
+                </div>
+              </div>
+            ) : primaryVideo ? (
               <div className="relative bg-gray-100 rounded-lg aspect-video">
                 <video
-                  src={exercise.videoUrl}
+                  src={primaryVideo}
                   autoPlay
                   loop
                   muted
@@ -82,10 +113,10 @@ const ExerciseDisplay = ({
                   </Badge>
                 </div>
               </div>
-            ) : exercise.image ? (
+            ) : primaryImage ? (
               <div className="relative bg-gray-100 rounded-lg aspect-video">
                 <img
-                  src={exercise.image}
+                  src={primaryImage}
                   alt={exercise.name}
                   className="w-full h-full object-cover rounded-lg"
                 />

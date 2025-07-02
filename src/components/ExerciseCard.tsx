@@ -1,9 +1,12 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, Clock, Play, Plus } from "lucide-react";
+import { exerciseMediaService } from "@/services/exerciseMediaService";
+import type { ExerciseMedia } from "@/types/workout";
 
 interface Exercise {
   id: number;
@@ -26,6 +29,24 @@ interface ExerciseCardProps {
 }
 
 const ExerciseCard = ({ exercise, onStartRestTimer }: ExerciseCardProps) => {
+  const [exerciseMedia, setExerciseMedia] = useState<ExerciseMedia[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(true);
+
+  useEffect(() => {
+    const loadExerciseMedia = async () => {
+      try {
+        const media = await exerciseMediaService.getExerciseMedia(exercise.name);
+        setExerciseMedia(media);
+      } catch (error) {
+        console.error('Error loading exercise media:', error);
+      } finally {
+        setIsLoadingMedia(false);
+      }
+    };
+
+    loadExerciseMedia();
+  }, [exercise.name]);
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Principiante": return "bg-green-100 text-green-800";
@@ -34,6 +55,10 @@ const ExerciseCard = ({ exercise, onStartRestTimer }: ExerciseCardProps) => {
       default: return "bg-gray-100 text-gray-800";
     }
   };
+
+  // Get the primary image (first image in the media array, or fallback to exercise.imageUrl)
+  const primaryImage = exerciseMedia.find(media => media.media_type === 'image')?.url || exercise.imageUrl;
+  const hasVideo = exerciseMedia.some(media => media.media_type === 'video');
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -69,12 +94,18 @@ const ExerciseCard = ({ exercise, onStartRestTimer }: ExerciseCardProps) => {
       <CardContent>
         {/* Exercise Image */}
         <div className="mb-4">
-          <img
-            src={exercise.imageUrl}
-            alt={`Demostración de ${exercise.name}`}
-            className="w-full h-48 object-cover rounded-lg"
-            loading="lazy"
-          />
+          {isLoadingMedia ? (
+            <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+              <div className="text-gray-500">Cargando imagen...</div>
+            </div>
+          ) : (
+            <img
+              src={primaryImage}
+              alt={`Demostración de ${exercise.name}`}
+              className="w-full h-48 object-cover rounded-lg"
+              loading="lazy"
+            />
+          )}
         </div>
 
         <Tabs defaultValue="instructions" className="w-full">
@@ -111,9 +142,9 @@ const ExerciseCard = ({ exercise, onStartRestTimer }: ExerciseCardProps) => {
         </Tabs>
 
         <div className="flex gap-2 mt-4 pt-4 border-t">
-          <Button size="sm" variant="outline" className="flex-1">
+          <Button size="sm" variant="outline" className="flex-1" disabled={!hasVideo}>
             <Play className="h-4 w-4 mr-2" />
-            Ver Video
+            {hasVideo ? "Ver Video" : "Sin Video"}
           </Button>
           <Button size="sm" className="flex-1 bg-orange-600 hover:bg-orange-700">
             <Plus className="h-4 w-4 mr-2" />
