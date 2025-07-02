@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,13 +9,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Dumbbell, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Dumbbell, Mail, Lock, User, Loader2, Smartphone } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      console.log('Auth: User already authenticated, redirecting to home');
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    console.log('Auth: Component mounted');
+    console.log('Auth: Current URL:', window.location.href);
+    console.log('Auth: Is mobile:', /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  }, []);
 
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -32,26 +48,37 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Auth: Login attempt started');
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log('Auth: Attempting login with email:', loginForm.email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
         password: loginForm.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Auth: Login error:', error);
+        throw error;
+      }
 
+      console.log('Auth: Login successful:', data.user?.email);
       toast({
         title: "¡Bienvenido de vuelta!",
         description: "Has iniciado sesión correctamente.",
       });
 
-      navigate("/");
+      // The navigation will be handled by the useEffect hook when user state updates
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Auth: Login failed:', error);
       setError(error.message || "Error al iniciar sesión");
+      toast({
+        title: "Error de inicio de sesión",
+        description: error.message || "Error al iniciar sesión",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -59,6 +86,7 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Auth: Signup attempt started');
     
     if (signupForm.password !== signupForm.confirmPassword) {
       setError("Las contraseñas no coinciden");
@@ -74,7 +102,13 @@ const Auth = () => {
     setError(null);
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      // Determine the correct redirect URL based on environment
+      const currentUrl = window.location.origin;
+      const redirectUrl = currentUrl.includes('lovableproject.com') 
+        ? `${currentUrl}/` 
+        : `${currentUrl}/`;
+      
+      console.log('Auth: Signup with redirect URL:', redirectUrl);
       
       const { data, error } = await supabase.auth.signUp({
         email: signupForm.email,
@@ -88,8 +122,12 @@ const Auth = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Auth: Signup error:', error);
+        throw error;
+      }
 
+      console.log('Auth: Signup successful:', data.user?.email);
       toast({
         title: "¡Cuenta creada!",
         description: "Revisa tu email para confirmar tu cuenta.",
@@ -105,8 +143,13 @@ const Auth = () => {
       });
 
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Auth: Signup failed:', error);
       setError(error.message || "Error al crear la cuenta");
+      toast({
+        title: "Error de registro",
+        description: error.message || "Error al crear la cuenta",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -123,6 +166,14 @@ const Auth = () => {
           </div>
           <h1 className="text-3xl font-bold text-gray-900">FitTracker AI</h1>
           <p className="text-gray-600 mt-2">Tu entrenador personal inteligente</p>
+          
+          {/* Mobile indicator */}
+          {/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) && (
+            <div className="flex items-center justify-center gap-2 mt-3 text-sm text-gray-500">
+              <Smartphone className="h-4 w-4" />
+              <span>Versión móvil</span>
+            </div>
+          )}
         </div>
 
         <Card>
@@ -154,6 +205,7 @@ const Auth = () => {
                         onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="email"
                       />
                     </div>
                   </div>
@@ -170,6 +222,7 @@ const Auth = () => {
                         onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="current-password"
                       />
                     </div>
                   </div>
@@ -201,6 +254,7 @@ const Auth = () => {
                           onChange={(e) => setSignupForm({ ...signupForm, firstName: e.target.value })}
                           required
                           disabled={isLoading}
+                          autoComplete="given-name"
                         />
                       </div>
                     </div>
@@ -213,6 +267,7 @@ const Auth = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, lastName: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="family-name"
                       />
                     </div>
                   </div>
@@ -229,6 +284,7 @@ const Auth = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="email"
                       />
                     </div>
                   </div>
@@ -245,6 +301,7 @@ const Auth = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
@@ -261,6 +318,7 @@ const Auth = () => {
                         onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value })}
                         required
                         disabled={isLoading}
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
@@ -279,6 +337,11 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
+          <p>¿Problemas para acceder?</p>
+          <p>Verifica tu conexión a internet y vuelve a intentar</p>
+        </div>
       </div>
     </div>
   );

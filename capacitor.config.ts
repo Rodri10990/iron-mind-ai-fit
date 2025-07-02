@@ -20,7 +20,16 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    CapacitorHttp: {
+      enabled: true,
+    },
   },
+  ios: {
+    scheme: "ironmindaifit"
+  },
+  android: {
+    scheme: "https"
+  }
 };
 
 export default config;
