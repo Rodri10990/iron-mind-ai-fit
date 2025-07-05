@@ -88,7 +88,7 @@ const PlanDetailsForm = ({
               id="sessions"
               type="number"
               min="1"
-              max="7"
+              max="14"
               value={sessionsPerWeek}
               onChange={(e) => setSessionsPerWeek(parseInt(e.target.value) || 3)}
             />
