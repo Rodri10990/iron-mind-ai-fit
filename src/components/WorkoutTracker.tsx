@@ -4,6 +4,8 @@ import WorkoutTimer from "./WorkoutTimer";
 import WorkoutExerciseCard from "./WorkoutExerciseCard";
 import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
 import { useToast } from "@/hooks/use-toast";
+import { workoutSessionService } from "@/services/workoutSessionService";
+import { workoutSetService } from "@/services/workoutSetService";
 
 interface WorkoutTrackerProps {
   onWorkoutStateChange?: (isActive: boolean) => void;
@@ -13,6 +15,8 @@ const WorkoutTracker = ({ onWorkoutStateChange }: WorkoutTrackerProps) => {
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
   const [currentExercise, setCurrentExercise] = useState(0);
   const [showActiveWorkout, setShowActiveWorkout] = useState(false);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const { toast } = useToast();
   
   // Mock workout data con imágenes corregidas para cada ejercicio
@@ -85,14 +89,31 @@ const WorkoutTracker = ({ onWorkoutStateChange }: WorkoutTrackerProps) => {
     setExerciseData(newData);
   };
 
-  const handleStartWorkout = () => {
-    setIsWorkoutActive(true);
-    setShowActiveWorkout(true);
-    onWorkoutStateChange?.(true);
-    toast({
-      title: "¡Entrenamiento iniciado!",
-      description: "¡Vamos a entrenar! Sigue las instrucciones en pantalla.",
-    });
+  const handleStartWorkout = async () => {
+    try {
+      console.log('WorkoutTracker: Creating workout session for:', workout.name);
+      const session = await workoutSessionService.createWorkoutSession(workout.name);
+      if (session) {
+        setCurrentSession(session.id);
+        setWorkoutStartTime(new Date());
+        setIsWorkoutActive(true);
+        setShowActiveWorkout(true);
+        onWorkoutStateChange?.(true);
+        console.log('WorkoutTracker: Session created with ID:', session.id);
+        
+        toast({
+          title: "¡Entrenamiento iniciado!",
+          description: "¡Vamos a entrenar! Sigue las instrucciones en pantalla.",
+        });
+      }
+    } catch (error) {
+      console.error('WorkoutTracker: Error creating session:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar la sesión de entrenamiento",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleBackToOverview = () => {
@@ -103,14 +124,42 @@ const WorkoutTracker = ({ onWorkoutStateChange }: WorkoutTrackerProps) => {
     });
   };
 
-  const handleFinishWorkout = () => {
-    setIsWorkoutActive(false);
-    setShowActiveWorkout(false);
-    onWorkoutStateChange?.(false);
-    toast({
-      title: "¡Entrenamiento completado!",
-      description: "¡Excelente trabajo! Has terminado tu entrenamiento.",
-    });
+  const handleFinishWorkout = async () => {
+    try {
+      if (currentSession && workoutStartTime) {
+        const totalMinutes = Math.round((Date.now() - workoutStartTime.getTime()) / (1000 * 60));
+        console.log('WorkoutTracker: Completing workout session:', {
+          sessionId: currentSession,
+          totalMinutes
+        });
+        
+        await workoutSessionService.completeWorkoutSession(currentSession, totalMinutes);
+        console.log('WorkoutTracker: Workout session completed successfully');
+        
+        toast({
+          title: "¡Entrenamiento guardado!",
+          description: `Sesión completada en ${totalMinutes} minutos`,
+        });
+      } else {
+        toast({
+          title: "¡Entrenamiento completado!",
+          description: "¡Excelente trabajo! Has terminado tu entrenamiento.",
+        });
+      }
+    } catch (error) {
+      console.error('WorkoutTracker: Error completing session:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la sesión completa",
+        variant: "destructive"
+      });
+    } finally {
+      setIsWorkoutActive(false);
+      setShowActiveWorkout(false);
+      setCurrentSession(null);
+      setWorkoutStartTime(null);
+      onWorkoutStateChange?.(false);
+    }
   };
 
   const totalSets = exerciseData.reduce((acc, ex) => acc + ex.sets.length, 0);

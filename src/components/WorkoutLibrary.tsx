@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { workoutPlanService } from "@/services/workoutPlanService";
 import { exerciseMediaService } from "@/services/exerciseMediaService";
+import { workoutSessionService } from "@/services/workoutSessionService";
 import ActiveWorkoutScreen from "./ActiveWorkoutScreen";
 import ManualPlanCreator from "./ManualPlanCreator";
 import { 
@@ -44,6 +45,8 @@ const WorkoutLibrary = () => {
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [activeWorkout, setActiveWorkout] = useState<any>(null);
   const [showManualCreator, setShowManualCreator] = useState(false);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -210,12 +213,40 @@ const WorkoutLibrary = () => {
       <ActiveWorkoutScreen
         workout={activeWorkout}
         onBack={() => setActiveWorkout(null)}
-        onFinishWorkout={() => {
-          setActiveWorkout(null);
-          toast({
-            title: "¡Entrenamiento completado!",
-            description: "¡Excelente trabajo!",
-          });
+        onFinishWorkout={async () => {
+          try {
+            if (currentSession && workoutStartTime) {
+              const totalMinutes = Math.round((Date.now() - workoutStartTime.getTime()) / (1000 * 60));
+              console.log('WorkoutLibrary: Completing workout session:', {
+                sessionId: currentSession,
+                totalMinutes
+              });
+              
+              await workoutSessionService.completeWorkoutSession(currentSession, totalMinutes);
+              console.log('WorkoutLibrary: Workout session completed successfully');
+              
+              toast({
+                title: "¡Entrenamiento guardado!",
+                description: `Sesión completada en ${totalMinutes} minutos`,
+              });
+            } else {
+              toast({
+                title: "¡Entrenamiento completado!",
+                description: "¡Excelente trabajo!",
+              });
+            }
+          } catch (error) {
+            console.error('WorkoutLibrary: Error completing session:', error);
+            toast({
+              title: "Error",
+              description: "No se pudo guardar la sesión completa",
+              variant: "destructive"
+            });
+          } finally {
+            setActiveWorkout(null);
+            setCurrentSession(null);
+            setWorkoutStartTime(null);
+          }
         }}
       />
     );

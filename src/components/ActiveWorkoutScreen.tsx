@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Play, Pause, RotateCcw, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { workoutSessionService } from "@/services/workoutSessionService";
+import { workoutSetService } from "@/services/workoutSetService";
 import ExerciseDisplay from "./ExerciseDisplay";
 import RestTimerControl from "./RestTimerControl";
 
@@ -42,9 +45,34 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
   const [workoutTime, setWorkoutTime] = useState(0);
   const [isWorkoutActive, setIsWorkoutActive] = useState(true);
   const [workoutExercises, setWorkoutExercises] = useState(workout.exercises);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const currentExercise = workoutExercises[currentExerciseIndex];
   const currentSet = currentExercise?.sets[currentSetIndex];
+
+  // Initialize workout session on component mount
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        console.log('ActiveWorkoutScreen: Creating workout session for:', workout.name);
+        const session = await workoutSessionService.createWorkoutSession(workout.name);
+        if (session) {
+          setCurrentSession(session.id);
+          console.log('ActiveWorkoutScreen: Session created with ID:', session.id);
+        }
+      } catch (error) {
+        console.error('ActiveWorkoutScreen: Error creating session:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo inicializar la sesión de entrenamiento",
+          variant: "destructive"
+        });
+      }
+    };
+
+    initializeSession();
+  }, [workout.name, toast]);
 
   // Timer del entrenamiento
   useEffect(() => {
@@ -69,26 +97,55 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
     setWorkoutExercises(updatedExercises);
   };
 
-  const completeSet = () => {
-    if (!currentExercise || !currentSet) return;
+  const completeSet = async () => {
+    if (!currentExercise || !currentSet || !currentSession) return;
 
-    // Marcar serie como completada
-    const updatedExercises = [...workoutExercises];
-    updatedExercises[currentExerciseIndex].sets[currentSetIndex].completed = true;
-    setWorkoutExercises(updatedExercises);
+    try {
+      // Marcar serie como completada
+      const updatedExercises = [...workoutExercises];
+      updatedExercises[currentExerciseIndex].sets[currentSetIndex].completed = true;
+      setWorkoutExercises(updatedExercises);
 
-    // Verificar si hay más series en este ejercicio
-    const remainingSets = currentExercise.sets.slice(currentSetIndex + 1);
-    const hasMoreSets = remainingSets.some(set => !set.completed);
+      // Save set to database
+      console.log('ActiveWorkoutScreen: Saving set to database:', {
+        sessionId: currentSession,
+        exerciseName: currentExercise.name,
+        setNumber: currentSetIndex + 1,
+        reps: currentSet.reps,
+        weight: currentSet.weight
+      });
 
-    if (hasMoreSets) {
-      // Iniciar descanso
-      setRestTime(currentExercise.restTime);
-      setIsResting(true);
-      setIsRestTimerActive(true);
-    } else {
-      // Pasar al siguiente ejercicio
-      moveToNextExercise();
+      await workoutSetService.addWorkoutSet(
+        currentSession,
+        currentExercise.name,
+        currentSetIndex + 1,
+        currentSet.reps,
+        currentSet.weight,
+        currentExercise.restTime
+      );
+
+      console.log('ActiveWorkoutScreen: Set saved successfully');
+
+      // Verificar si hay más series en este ejercicio
+      const remainingSets = currentExercise.sets.slice(currentSetIndex + 1);
+      const hasMoreSets = remainingSets.some(set => !set.completed);
+
+      if (hasMoreSets) {
+        // Iniciar descanso
+        setRestTime(currentExercise.restTime);
+        setIsResting(true);
+        setIsRestTimerActive(true);
+      } else {
+        // Pasar al siguiente ejercicio
+        moveToNextExercise();
+      }
+    } catch (error) {
+      console.error('ActiveWorkoutScreen: Error saving set:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la serie",
+        variant: "destructive"
+      });
     }
   };
 
@@ -105,9 +162,34 @@ const ActiveWorkoutScreen = ({ workout, onBack, onFinishWorkout }: ActiveWorkout
     }
   };
 
-  const finishWorkout = () => {
-    setIsWorkoutActive(false);
-    onFinishWorkout();
+  const finishWorkout = async () => {
+    try {
+      if (currentSession) {
+        const totalMinutes = Math.round(workoutTime / 60);
+        console.log('ActiveWorkoutScreen: Completing workout session:', {
+          sessionId: currentSession,
+          totalMinutes
+        });
+        
+        await workoutSessionService.completeWorkoutSession(currentSession, totalMinutes);
+        console.log('ActiveWorkoutScreen: Workout session completed successfully');
+        
+        toast({
+          title: "¡Entrenamiento guardado!",
+          description: `Sesión completada en ${totalMinutes} minutos`,
+        });
+      }
+    } catch (error) {
+      console.error('ActiveWorkoutScreen: Error completing session:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la sesión completa",
+        variant: "destructive"
+      });
+    } finally {
+      setIsWorkoutActive(false);
+      onFinishWorkout();
+    }
   };
 
   const skipRest = () => {
