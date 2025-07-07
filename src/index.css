@@ -92,6 +92,112 @@
   }
 }
 
+/* Mobile-specific styles for AI Coach */
+@media (max-width: 768px) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  /* Prevent zoom on iOS when focusing inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* Smooth scrolling for mobile */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better touch targets */
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Chat container mobile optimizations */
+  .chat-container-mobile {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height */
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  
+  /* Keyboard aware container */
+  .keyboard-aware-container {
+    height: calc(100vh - env(keyboard-inset-height, 0px));
+    height: calc(100dvh - env(keyboard-inset-height, 0px));
+    transition: height 0.3s ease-in-out;
+  }
+  
+  /* Fixed input positioning */
+  .fixed-input-mobile {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid hsl(var(--border));
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+  
+  /* Enhanced scroll area for mobile */
+  .mobile-scroll-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Mobile chat message optimizations */
+  .mobile-chat-message {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  
+  /* Keyboard transition animations */
+  .keyboard-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Visual viewport support */
+  @supports (height: 100dvh) {
+    .dvh-support {
+      height: 100dvh;
+    }
+  }
+  
+  /* Landscape orientation adjustments */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .landscape-compact {
+      height: calc(100vh - 80px);
+    }
+    
+    .landscape-compact .chat-header {
+      padding: 0.5rem;
+    }
+    
+    .landscape-compact .chat-content {
+      padding: 0.5rem;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { workoutPlanService, WorkoutPlanData } from "@/services/workoutPlanService";
 import { useChatHistory } from "@/hooks/useChatHistory";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Brain, 
   Send, 
@@ -34,8 +35,89 @@ const AICoach = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const { toast } = useToast();
   const { chatHistory, setChatHistory, addMessage, clearHistory } = useChatHistory();
+  const isMobile = useIsMobile();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle virtual keyboard detection for mobile
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const handleVisualViewportChange = () => {
+      if (window.visualViewport) {
+        const currentHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const keyboardHeight = windowHeight - currentHeight;
+        
+        setKeyboardHeight(keyboardHeight);
+        setIsKeyboardVisible(keyboardHeight > 150); // Threshold for keyboard detection
+        
+        // Scroll to input when keyboard appears
+        if (keyboardHeight > 150 && inputRef.current) {
+          setTimeout(() => {
+            inputRef.current?.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'nearest',
+              inline: 'nearest'
+            });
+          }, 100);
+        }
+      }
+    };
+
+    // Fallback for browsers without visualViewport
+    const handleResize = () => {
+      if (!window.visualViewport) {
+        const currentHeight = window.innerHeight;
+        const documentHeight = document.documentElement.clientHeight;
+        const keyboardHeight = documentHeight - currentHeight;
+        
+        setKeyboardHeight(Math.max(0, keyboardHeight));
+        setIsKeyboardVisible(keyboardHeight > 150);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportChange);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, [isMobile]);
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [chatHistory]);
+
+  // Handle input focus for mobile
+  const handleInputFocus = () => {
+    if (isMobile) {
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 300);
+    }
+  };
 
   const recommendations = [
     {
@@ -337,9 +419,9 @@ const AICoach = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
+    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 ${isMobile ? 'h-screen overflow-hidden' : ''}`}>
       {/* Recommendations Panel */}
-      <div className="lg:col-span-1 space-y-3 md:space-y-4">
+      <div className={`lg:col-span-1 space-y-3 md:space-y-4 ${isMobile ? 'hidden' : ''}`}>
         <Card>
           <CardHeader className="px-3 py-2 md:px-6 md:py-4">
             <CardTitle className="flex items-center gap-2 text-sm md:text-base">
@@ -397,9 +479,19 @@ const AICoach = () => {
       </div>
 
       {/* Chat Interface */}
-      <div className="lg:col-span-2">
-        <Card className="h-[500px] md:h-[600px] flex flex-col">
-          <CardHeader className="px-3 py-2 md:px-6 md:py-4">
+      <div className="lg:col-span-2" ref={chatContainerRef}>
+        <Card 
+          className={`${
+            isMobile 
+              ? `h-[calc(100vh-120px)] ${isKeyboardVisible ? 'h-[calc(100vh-120px-env(keyboard-inset-height,0px))]' : ''}`
+              : 'h-[500px] md:h-[600px]'
+          } flex flex-col`}
+          style={isMobile && isKeyboardVisible ? { 
+            maxHeight: `calc(100vh - 120px - ${keyboardHeight}px)`,
+            transition: 'max-height 0.3s ease-in-out' 
+          } : {}}
+        >
+          <CardHeader className="px-3 py-2 md:px-6 md:py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-sm md:text-base">
                 <Brain className="h-4 w-4 md:h-5 md:w-5 text-purple-600" />
@@ -423,19 +515,34 @@ const AICoach = () => {
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="flex-1 flex flex-col px-3 md:px-6">
+          <CardContent className="flex-1 flex flex-col px-3 md:px-6 overflow-hidden">
             {/* Chat History */}
-            <ScrollArea className="flex-1 pr-2 md:pr-4">
-              <div className="space-y-3 md:space-y-4">
+            <ScrollArea 
+              ref={scrollAreaRef}
+              className="flex-1 pr-2 md:pr-4 -mr-2 md:-mr-4"
+              style={{ 
+                scrollBehavior: 'smooth',
+                overflowAnchor: 'auto'
+              }}
+            >
+              <div className="space-y-3 md:space-y-4 pb-4">
+                {chatHistory.length === 0 && (
+                  <div className="flex items-center justify-center h-32 text-gray-500">
+                    <div className="text-center">
+                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">¡Hola! Soy tu entrenador AI. ¿En qué puedo ayudarte hoy?</p>
+                    </div>
+                  </div>
+                )}
                 {chatHistory.map((chat, index) => (
                   <div key={index} className={`flex ${chat.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] md:max-w-[80%] p-2 md:p-3 rounded-lg ${
+                    <div className={`max-w-[85%] md:max-w-[80%] p-3 md:p-4 rounded-lg shadow-sm ${
                       chat.type === 'user' 
                         ? 'bg-orange-500 text-white' 
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-gray-100 text-gray-900 border border-gray-200'
                     }`}>
-                      <div className="whitespace-pre-wrap text-xs md:text-sm">{chat.message}</div>
-                      <div className={`text-xs mt-1 ${
+                      <div className="whitespace-pre-wrap text-sm md:text-base leading-relaxed">{chat.message}</div>
+                      <div className={`text-xs mt-2 ${
                         chat.type === 'user' ? 'text-orange-100' : 'text-gray-500'
                       }`}>
                         {chat.timestamp}
@@ -445,9 +552,9 @@ const AICoach = () => {
                 ))}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 p-2 md:p-3 rounded-lg">
-                      <div className="flex items-center gap-2 text-xs md:text-sm text-gray-600">
-                        <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                    <div className="bg-gray-100 p-3 md:p-4 rounded-lg border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-2 text-sm md:text-base text-gray-600">
+                        <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
                         Tu entrenador AI está pensando...
                       </div>
                     </div>
@@ -456,17 +563,17 @@ const AICoach = () => {
               </div>
             </ScrollArea>
 
-            <Separator className="my-2 md:my-4" />
+            <Separator className="my-3 md:my-4 flex-shrink-0" />
 
             {/* Create Plan Button */}
             {chatHistory.length > 1 && (
-              <div className="mb-2 md:mb-3">
+              <div className="mb-3 md:mb-4 flex-shrink-0">
                 <Button
                   onClick={handleCreatePlanFromLastResponse}
                   disabled={isCreatingPlan}
                   variant="outline"
                   size="sm"
-                  className="text-xs bg-green-50 hover:bg-green-100 border-green-200"
+                  className="text-xs bg-green-50 hover:bg-green-100 border-green-200 transition-colors"
                 >
                   {isCreatingPlan ? (
                     <>
@@ -483,51 +590,70 @@ const AICoach = () => {
               </div>
             )}
 
-            {/* Message Input - Fixed for mobile */}
-            <div className="flex gap-1 md:gap-2 relative">
-              <Input
-                placeholder="Pregúntame sobre tu entrenamiento..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                className="flex-1 text-xs md:text-sm h-10 md:h-12 pr-12"
-                disabled={isLoading}
-                style={{ paddingBottom: 'env(keyboard-inset-height, 0px)' }}
-              />
-              <Button 
-                onClick={sendMessage} 
-                disabled={!message.trim() || isLoading}
-                size="sm"
-                className="h-10 md:h-12 px-3 md:px-4 absolute right-1 top-1/2 transform -translate-y-1/2"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-                ) : (
-                  <Send className="h-3 w-3 md:h-4 md:w-4" />
-                )}
-              </Button>
-            </div>
-
-            {/* Quick Questions */}
-            <div className="flex flex-wrap gap-1 md:gap-2 mt-2 md:mt-3">
-              {quickQuestions.slice(0, 2).map((question, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-6 md:h-7 px-2"
-                  onClick={() => setMessage(question)}
+            {/* Input Section - Fixed positioning for mobile */}
+            <div 
+              className={`flex-shrink-0 ${
+                isMobile && isKeyboardVisible ? 'sticky bottom-0 bg-white pt-2 pb-safe' : ''
+              }`}
+              style={isMobile && isKeyboardVisible ? {
+                marginBottom: 'env(safe-area-inset-bottom, 0px)',
+                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+              } : {}}
+            >
+              {/* Message Input */}
+              <div className="flex gap-2 md:gap-3 relative mb-3">
+                <Input
+                  ref={inputRef}
+                  placeholder="Pregúntame sobre tu entrenamiento..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  onFocus={handleInputFocus}
+                  className={`flex-1 text-sm md:text-base h-12 md:h-14 pr-14 md:pr-16 rounded-lg transition-all duration-200 ${
+                    isMobile ? 'text-[16px]' : '' // Prevent zoom on iOS
+                  }`}
                   disabled={isLoading}
+                  style={{ 
+                    fontSize: isMobile ? '16px' : undefined // Prevent zoom on iOS
+                  }}
+                />
+                <Button 
+                  onClick={sendMessage} 
+                  disabled={!message.trim() || isLoading}
+                  size="sm"
+                  className="h-12 md:h-14 px-4 md:px-5 absolute right-1 top-1/2 transform -translate-y-1/2 rounded-lg transition-all duration-200"
                 >
-                  {question.length > 20 ? question.substring(0, 20) + '...' : question}
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 md:h-5 md:w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 md:h-5 md:w-5" />
+                  )}
                 </Button>
-              ))}
-            </div>
+              </div>
 
-            {/* AI Status */}
-            <div className="flex items-center gap-1 md:gap-2 mt-2 md:mt-2 text-xs text-gray-500 pb-safe">
-              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>AI Entrenador activo • Powered by Google Gemini</span>
+              {/* Quick Questions - Only show when keyboard is not visible on mobile */}
+              {!(isMobile && isKeyboardVisible) && (
+                <div className="flex flex-wrap gap-2 md:gap-3 mb-2">
+                  {quickQuestions.slice(0, 2).map((question, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 md:h-9 px-3 rounded-full transition-all duration-200 hover:bg-gray-50"
+                      onClick={() => setMessage(question)}
+                      disabled={isLoading}
+                    >
+                      {isMobile && question.length > 25 ? question.substring(0, 25) + '...' : question}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {/* AI Status */}
+              <div className="flex items-center gap-2 md:gap-3 text-xs text-gray-500 pb-safe">
+                <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs md:text-sm">AI Entrenador activo • Powered by Google Gemini</span>
+              </div>
             </div>
           </CardContent>
         </Card>
