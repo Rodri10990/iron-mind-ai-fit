@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+// Import the Select components from the local ui file
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,12 +42,14 @@ const Settings = () => {
   const [soundEffects, setSoundEffects] = useState(true);
   const [autoRestTimer, setAutoRestTimer] = useState(true);
   
-  // Personal data
+  // Personal data state
   const [firstName, setFirstName] = useState(user?.user_metadata?.first_name || "");
   const [lastName, setLastName] = useState(user?.user_metadata?.last_name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [weight, setWeight] = useState(user?.user_metadata?.weight || "");
+  const [height, setHeight] = useState(user?.user_metadata?.height || "");
+  const [gender, setGender] = useState(user?.user_metadata?.gender || "");
   
-  // Password change
+  // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,13 +57,17 @@ const Settings = () => {
   
   const [isLoading, setIsLoading] = useState(false);
 
+  // Handles saving of personal data to Supabase user metadata
   const handleSavePersonalData = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase.auth.updateUser({
         data: {
           first_name: firstName,
-          last_name: lastName
+          last_name: lastName,
+          weight: weight ? parseFloat(weight) : null,
+          height: height ? parseFloat(height) : null,
+          gender: gender,
         }
       });
 
@@ -64,11 +77,11 @@ const Settings = () => {
         title: "Datos actualizados",
         description: "Tu información personal ha sido actualizada correctamente.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: "No se pudieron actualizar los datos. Intenta de nuevo.",
+        description: error.message || "No se pudieron actualizar los datos. Intenta de nuevo.",
         variant: "destructive",
       });
     } finally {
@@ -76,6 +89,7 @@ const Settings = () => {
     }
   };
 
+  // Handles user password change
   const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast({
@@ -111,11 +125,11 @@ const Settings = () => {
         title: "Contraseña actualizada",
         description: "Tu contraseña ha sido cambiada correctamente.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error changing password:', error);
       toast({
         title: "Error",
-        description: "No se pudo cambiar la contraseña. Intenta de nuevo.",
+        description: error.message || "No se pudo cambiar la contraseña. Intenta de nuevo.",
         variant: "destructive",
       });
     } finally {
@@ -123,6 +137,7 @@ const Settings = () => {
     }
   };
 
+  // Handles user sign out
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -131,11 +146,11 @@ const Settings = () => {
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
         title: "Error",
-        description: "No se pudo cerrar la sesión.",
+        description: error.message || "No se pudo cerrar la sesión.",
         variant: "destructive",
       });
     }
@@ -163,7 +178,7 @@ const Settings = () => {
         <div className="w-20"></div> {/* Spacer for centering */}
       </div>
 
-      <Tabs defaultValue="app" className="max-w-4xl mx-auto">
+      <Tabs defaultValue="personal" className="max-w-4xl mx-auto">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="app" className="flex items-center gap-2">
             <SettingsIcon className="h-4 w-4" />
@@ -189,69 +204,22 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Modo Oscuro</Label>
-                  <p className="text-sm text-gray-600">Activa el tema oscuro para mejor experiencia nocturna</p>
-                </div>
-                <Switch
-                  checked={darkMode}
-                  onCheckedChange={setDarkMode}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Notificaciones</Label>
-                  <p className="text-sm text-gray-600">Recibe recordatorios de entrenamientos y logros</p>
-                </div>
-                <Switch
-                  checked={notifications}
-                  onCheckedChange={setNotifications}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Efectos de Sonido</Label>
-                  <p className="text-sm text-gray-600">Reproduce sonidos durante los entrenamientos</p>
-                </div>
-                <Switch
-                  checked={soundEffects}
-                  onCheckedChange={setSoundEffects}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Timer Automático</Label>
-                  <p className="text-sm text-gray-600">Inicia automáticamente el timer de descanso</p>
-                </div>
-                <Switch
-                  checked={autoRestTimer}
-                  onCheckedChange={setAutoRestTimer}
-                />
-              </div>
+               {/* App settings switches */}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Personal Data */}
+        {/* Personal Data Tab */}
         <TabsContent value="personal" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>Datos Personales</CardTitle>
               <CardDescription>
-                Actualiza tu información personal y perfil.
+                Actualiza tu información personal. Estos datos ayudarán a la IA a personalizar tus entrenamientos.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Name and Last Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Nombre</Label>
@@ -273,28 +241,58 @@ const Settings = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  disabled
-                  className="bg-gray-100"
-                />
-                <p className="text-xs text-gray-600">
-                  El email no se puede cambiar desde aquí. Contacta soporte si necesitas cambiarlo.
-                </p>
+              <Separator />
+
+              {/* Physical user data */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Peso (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="Ej: 75.5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="height">Altura (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="Ej: 180"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Sexo</Label>
+                  {/* Replaced Input with Select for better data consistency */}
+                  <Select onValueChange={setGender} defaultValue={gender}>
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Selecciona tu sexo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Masculino</SelectItem>
+                      <SelectItem value="female">Femenino</SelectItem>
+                      <SelectItem value="other">Otro</SelectItem>
+                      <SelectItem value="prefer_not_to_say">Prefiero no decirlo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <Button
-                onClick={handleSavePersonalData}
-                disabled={isLoading}
-                className="w-full md:w-auto"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isLoading ? "Guardando..." : "Guardar Cambios"}
-              </Button>
+              {/* Save Button */}
+              <div className="pt-4">
+                <Button
+                  onClick={handleSavePersonalData}
+                  disabled={isLoading}
+                  className="w-full md:w-auto"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isLoading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -328,7 +326,6 @@ const Settings = () => {
               {/* Change Password */}
               <div className="space-y-4">
                 <h3 className="font-medium">Cambiar Contraseña</h3>
-                
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">Nueva Contraseña</Label>
                   <div className="relative">
@@ -350,7 +347,6 @@ const Settings = () => {
                     </Button>
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                   <Input
@@ -361,7 +357,6 @@ const Settings = () => {
                     placeholder="Confirma la nueva contraseña"
                   />
                 </div>
-
                 <Button
                   onClick={handleChangePassword}
                   disabled={isLoading || !newPassword || !confirmPassword}
